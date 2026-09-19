@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="annotation_add_label">Add labels</string>
+    <string name="annotation_add_note">Add note</string>
+    <string name="annotation_labels_hint">Labels, separated by commas</string>
+    <string name="annotation_labels_help">Use #work, #important or plain names. Existing labels are reused.</string>
+    <string name="annotation_note_hint">Write a private note about this message or conversation…</string>
+</resources>
