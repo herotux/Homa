@@ -1,0 +1,50 @@
+name: Homa APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/homa
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare local.properties
+        shell: bash
+        run: |
+          cat > local.properties <<'EOF'
+          RIGHT_APP_KEY=
+          PRODUCT_ID_X1=
+          PRODUCT_ID_X2=
+          PRODUCT_ID_X3=
+          SUBSCRIPTION_ID_X1=
+          SUBSCRIPTION_ID_X2=
+          SUBSCRIPTION_ID_X3=
+          SUBSCRIPTION_YEAR_ID_X1=
+          SUBSCRIPTION_YEAR_ID_X2=
+          SUBSCRIPTION_YEAR_ID_X3=
+          EOF
+
+      - name: Build FOSS debug APK
+        run: ./gradlew :app:assembleFossDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homa-FOSS-debug
+          path: app/build/outputs/apk/foss/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
