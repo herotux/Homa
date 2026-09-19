@@ -47,7 +47,6 @@ import com.goodwy.smsmessenger.extensions.deleteSmsDraft
 import com.goodwy.smsmessenger.extensions.getAllDrafts
 import com.goodwy.smsmessenger.extensions.setWidth
 import com.goodwy.smsmessenger.helpers.*
-import com.goodwy.smsmessenger.helpers.MessageAnnotationStore
 import com.goodwy.smsmessenger.models.Conversation
 import me.thanel.swipeactionview.SwipeActionView
 import me.thanel.swipeactionview.SwipeDirection
