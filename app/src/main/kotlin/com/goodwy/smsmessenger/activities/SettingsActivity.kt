@@ -880,6 +880,18 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    private fun getSwipeActionText(left: Boolean) = getString(
+        when (if (left) config.swipeLeftAction else config.swipeRightAction) {
+            SWIPE_ACTION_MARK_READ -> R.string.mark_as_read
+            SWIPE_ACTION_DELETE -> com.goodwy.commons.R.string.delete
+            SWIPE_ACTION_ARCHIVE -> R.string.archive
+            SWIPE_ACTION_BLOCK -> com.goodwy.commons.R.string.block_number
+            SWIPE_ACTION_CALL -> com.goodwy.commons.R.string.call
+            SWIPE_ACTION_MESSAGE -> com.goodwy.commons.R.string.send_sms
+            else -> com.goodwy.commons.R.string.nothing
+        }
+    )
+
     private fun setupArchiveConfirmation() {
         binding.apply {
             //settingsSkipArchiveConfirmationHolder.beVisibleIf(config.swipeLeftAction == SWIPE_ACTION_ARCHIVE || config.swipeRightAction == SWIPE_ACTION_ARCHIVE)
