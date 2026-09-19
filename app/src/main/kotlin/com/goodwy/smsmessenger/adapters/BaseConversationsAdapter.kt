@@ -408,32 +408,38 @@ abstract class BaseConversationsAdapter(
                 marginEnd = dp(56)
             })
         }
-        val labels = MessageAnnotationStore.getConversationLabels(activity, conversation.threadId).take(3)
-        val note = MessageAnnotationStore.getConversationNote(activity, conversation.threadId)?.text?.trim().orEmpty()
-        box.removeAllViews()
-        labels.forEach { label ->
-            box.addView(TextView(activity).apply {
-                text = "#" + label.name
-                textSize = 10f
-                setTextColor(label.color)
-                gravity = android.view.Gravity.CENTER
-                layoutParams = android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(20)).apply { marginEnd = dp(5) }
-            })
-        }
-        if (note.isNotEmpty()) box.addView(TextView(activity).apply {
-            text = "Note  ·  " + note
-            textSize = 10f
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            alpha = .7f
-            setTextColor(textColor)
-            layoutParams = android.widget.LinearLayout.LayoutParams(0, dp(20), 1f)
-        })
-        box.visibility = if (labels.isEmpty() && note.isEmpty()) View.GONE else View.VISIBLE
-        root.findViewById<View>(R.id.conversation_body_short)?.let { body ->
-            (body.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)?.let { lp ->
-                lp.bottomMargin = if (box.visibility == View.VISIBLE) dp(22) else 0
-                body.layoutParams = lp
+        box.visibility = View.GONE
+        ensureBackgroundThread {
+            val labels = MessageAnnotationStore.getConversationLabels(activity, conversation.threadId).take(3)
+            val note = MessageAnnotationStore.getConversationNote(activity, conversation.threadId)?.text?.trim().orEmpty()
+            activity.runOnUiThread {
+                if (activity.isDestroyed || activity.isFinishing) return@runOnUiThread
+                box.removeAllViews()
+                labels.forEach { label ->
+                    box.addView(TextView(activity).apply {
+                        text = "#" + label.name
+                        textSize = 10f
+                        setTextColor(label.color)
+                        gravity = android.view.Gravity.CENTER
+                        layoutParams = android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(20)).apply { marginEnd = dp(5) }
+                    })
+                }
+                if (note.isNotEmpty()) box.addView(TextView(activity).apply {
+                    text = "Note  ·  " + note
+                    textSize = 10f
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    alpha = .7f
+                    setTextColor(textColor)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(0, dp(20), 1f)
+                })
+                box.visibility = if (labels.isEmpty() && note.isEmpty()) View.GONE else View.VISIBLE
+                root.findViewById<View>(R.id.conversation_body_short)?.let { body ->
+                    (body.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)?.let { lp ->
+                        lp.bottomMargin = if (box.visibility == View.VISIBLE) dp(22) else 0
+                        body.layoutParams = lp
+                    }
+                }
             }
         }
     }
