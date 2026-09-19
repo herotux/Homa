@@ -8,16 +8,22 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.goodwy.smsmessenger.helpers.Converters
+import com.goodwy.smsmessenger.interfaces.AnnotationLabelsDao
 import com.goodwy.smsmessenger.interfaces.AttachmentsDao
 import com.goodwy.smsmessenger.interfaces.ConversationsDao
 import com.goodwy.smsmessenger.interfaces.DraftsDao
 import com.goodwy.smsmessenger.interfaces.MessageAttachmentsDao
 import com.goodwy.smsmessenger.interfaces.MessagesDao
+import com.goodwy.smsmessenger.models.AnnotationLabel
 import com.goodwy.smsmessenger.models.Attachment
+import com.goodwy.smsmessenger.models.ConversationLabel
+import com.goodwy.smsmessenger.models.ConversationNote
 import com.goodwy.smsmessenger.models.Conversation
 import com.goodwy.smsmessenger.models.Draft
 import com.goodwy.smsmessenger.models.Message
 import com.goodwy.smsmessenger.models.MessageAttachment
+import com.goodwy.smsmessenger.models.MessageLabel
+import com.goodwy.smsmessenger.models.MessageNote
 import com.goodwy.smsmessenger.models.RecycleBinMessage
 
 @Database(
@@ -27,14 +33,21 @@ import com.goodwy.smsmessenger.models.RecycleBinMessage
         MessageAttachment::class,
         Message::class,
         RecycleBinMessage::class,
-        Draft::class
+        Draft::class,
+        AnnotationLabel::class,
+        MessageLabel::class,
+        MessageNote::class,
+        ConversationLabel::class,
+        ConversationNote::class
     ],
-    version = 11
+    version = 12
 )
 @TypeConverters(Converters::class)
 abstract class MessagesDatabase : RoomDatabase() {
 
     abstract fun ConversationsDao(): ConversationsDao
+
+    abstract fun AnnotationLabelsDao(): AnnotationLabelsDao
 
     abstract fun AttachmentsDao(): AttachmentsDao
 
@@ -67,6 +80,7 @@ abstract class MessagesDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_8_9)
                             .addMigrations(MIGRATION_9_10)
                             .addMigrations(MIGRATION_10_11)
+                            .addMigrations(MIGRATION_11_12)
                             .build()
                     }
                 }
@@ -171,6 +185,21 @@ abstract class MessagesDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.apply {
                     execSQL("ALTER TABLE conversations ADD COLUMN is_blocked INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+        }
+
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.apply {
+                    execSQL("CREATE TABLE IF NOT EXISTS `annotation_labels` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `color` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)")
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_annotation_labels_name` ON `annotation_labels` (`name`)")
+                    execSQL("CREATE TABLE IF NOT EXISTS `message_labels` (`message_id` INTEGER NOT NULL, `label_id` INTEGER NOT NULL, PRIMARY KEY(`message_id`, `label_id`))")
+                    execSQL("CREATE INDEX IF NOT EXISTS `index_message_labels_label_id` ON `message_labels` (`label_id`)")
+                    execSQL("CREATE TABLE IF NOT EXISTS `message_notes` (`message_id` INTEGER NOT NULL, `text` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`message_id`))")
+                    execSQL("CREATE TABLE IF NOT EXISTS `conversation_labels` (`thread_id` INTEGER NOT NULL, `label_id` INTEGER NOT NULL, PRIMARY KEY(`thread_id`, `label_id`))")
+                    execSQL("CREATE INDEX IF NOT EXISTS `index_conversation_labels_label_id` ON `conversation_labels` (`label_id`)")
+                    execSQL("CREATE TABLE IF NOT EXISTS `conversation_notes` (`thread_id` INTEGER NOT NULL, `text` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`thread_id`))")
                 }
             }
         }
