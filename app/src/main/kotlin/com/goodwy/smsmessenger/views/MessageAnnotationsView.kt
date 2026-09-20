@@ -6,11 +6,11 @@ import android.widget.TextView
 import androidx.core.view.setPadding
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.views.MyTextView
-import com.goodwy.smsmessenger.activities.SimpleActivity
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.smsmessenger.models.AnnotationLabel
 import com.goodwy.smsmessenger.models.MessageNote
 import kotlin.math.roundToInt
-class MessageAnnotationsView(private val activity:SimpleActivity):LinearLayout(activity){
+class MessageAnnotationsView(private val activity:BaseSimpleActivity):LinearLayout(activity){
  private val labelsRow=LinearLayout(activity)
  private val noteView=MyTextView(activity)
  init{orientation=VERTICAL;gravity=Gravity.START;visibility=GONE;setPadding(dp(2),dp(2),dp(2),dp(2));labelsRow.orientation=HORIZONTAL;labelsRow.gravity=Gravity.START or Gravity.CENTER_VERTICAL;addView(labelsRow,LayoutParams(-1,-2));noteView.apply{textSize=11f;setTextColor(activity.getProperTextColor());alpha=.78f;maxLines=2;ellipsize=android.text.TextUtils.TruncateAt.END;setPadding(dp(4),dp(2),dp(4),dp(2))};addView(noteView,LayoutParams(-1,-2))}
