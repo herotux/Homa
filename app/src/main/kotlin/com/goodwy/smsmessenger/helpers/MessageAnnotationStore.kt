@@ -3,6 +3,7 @@ package com.goodwy.smsmessenger.helpers
 import android.content.Context
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.smsmessenger.extensions.messagesDB
+import com.goodwy.smsmessenger.interfaces.AnnotationLabelsDao
 import com.goodwy.smsmessenger.models.AnnotationLabel
 import com.goodwy.smsmessenger.models.ConversationLabel
 import com.goodwy.smsmessenger.models.ConversationNote
@@ -10,7 +11,7 @@ import com.goodwy.smsmessenger.models.MessageLabel
 import com.goodwy.smsmessenger.models.MessageNote
 
 object MessageAnnotationStore {
-    private fun dao(context: Context) = context.messagesDB.AnnotationLabelsDao()
+    private fun dao(context: Context): AnnotationLabelsDao = context.messagesDB.AnnotationLabelsDao()
     fun getMessageLabels(context: Context, messageId: Long) = dao(context).getMessageLabels(messageId)
     fun getMessageNote(context: Context, messageId: Long) = dao(context).getMessageNote(messageId)
     fun getConversationLabels(context: Context, threadId: Long) = dao(context).getConversationLabels(threadId)
