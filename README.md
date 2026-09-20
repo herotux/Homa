@@ -23,3 +23,4 @@ buying me a coffee! Your support helps me maintain and improve this project.
 
 
 *Based on [Simple SMS Messenger](https://github.com/SimpleMobileTools/Simple-SMS-Messenger), [Fossify Messages](https://github.com/FossifyOrg/Messages).*
+
