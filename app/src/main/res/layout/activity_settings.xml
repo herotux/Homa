@@ -80,6 +80,27 @@
                     </RelativeLayout>
 
                     <RelativeLayout
+                        android:id="@+id/settings_persian_font_holder"
+                        style="@style/SettingsHolderStyle">
+
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/settings_persian_font_label"
+                            style="@style/SettingsTextLabelStyle"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@+id/settings_persian_font"
+                            android:layout_marginEnd="@dimen/normal_margin"
+                            android:text="@string/persian_font" />
+
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/settings_persian_font"
+                            style="@style/SettingsTextValueStyle"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:text="@string/persian_font_system_default" />
+                    </RelativeLayout>
+
+                    <RelativeLayout
                         android:id="@+id/settingsFloatingButtonStyleHolder"
                         style="@style/SettingsHolderStyle">
 
