@@ -1,4 +1,5 @@
 name: Homa APK
+# Build against the current Homa-Commons JitPack publication.
 
 on:
   workflow_dispatch:
