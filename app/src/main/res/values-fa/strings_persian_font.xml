@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="persian_font">فونت فارسی</string>
+    <string name="persian_font_system_default">پیش‌فرض سیستم</string>
+    <string name="persian_font_vazirmatn">Vazirmatn</string>
+    <string name="persian_font_sahel">Sahel</string>
+    <string name="persian_font_shabnam">Shabnam</string>
+    <string name="persian_font_samim">Samim</string>
+    <string name="persian_font_tanha">Tanha</string>
+    <string name="persian_font_nahid">Nahid</string>
+</resources>
