@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: herotux/Homa-Commons
-          ref: ee8772f443048011e387dc587e187fe9de3e941a
+          ref: ef77dedcace3830b233dc2f6f75928380b4af51b
           path: homa-commons
 
       - name: Set up JDK 17
