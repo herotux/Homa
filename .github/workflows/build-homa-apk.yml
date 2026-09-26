@@ -36,7 +36,7 @@ jobs:
 
       - name: Publish Homa-Commons FOSS to Maven Local
         working-directory: homa-commons
-        run: ./gradlew :commons:publishFossReleasePublicationToMavenLocal --stacktrace --no-daemon
+        run: ./gradlew :commons:publishFossReleasePublicationToMavenLocal -PVERSION=ef77dedcace3830b233dc2f6f75928380b4af51b --stacktrace --no-daemon
 
       - name: Prepare local.properties
         shell: bash
