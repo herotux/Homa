@@ -1,5 +1,9 @@
 name: Homa APK
-# Build against the current Homa-Commons JitPack publication.
+# Build against the pinned Homa-Commons source locally in CI.
+#
+# Homa-Commons remains the source of the Persian font system and Goodwy
+# Commons integration. Publishing it to the runner's Maven cache avoids
+# making the APK build depend on JitPack availability.
 
 on:
   workflow_dispatch:
@@ -14,14 +18,25 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Homa
         uses: actions/checkout@v4
+
+      - name: Checkout Homa-Commons
+        uses: actions/checkout@v4
+        with:
+          repository: herotux/Homa-Commons
+          ref: ee8772f443048011e387dc587e187fe9de3e941a
+          path: homa-commons
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Publish Homa-Commons FOSS to Maven Local
+        working-directory: homa-commons
+        run: ./gradlew :commons:publishFossReleasePublicationToMavenLocal --stacktrace --no-daemon
 
       - name: Prepare local.properties
         shell: bash
@@ -40,7 +55,7 @@ jobs:
           EOF
 
       - name: Build FOSS debug APK
-        run: ./gradlew :app:assembleFossDebug --stacktrace
+        run: ./gradlew :app:assembleFossDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
