@@ -323,7 +323,7 @@ class SettingsActivity : SimpleActivity() {
             FONT_TYPE_MONOSPACE -> com.goodwy.commons.R.string.monospace
             FONT_TYPE_CUSTOM -> com.goodwy.commons.R.string.custom
             else -> R.string.persian_font_system_default
-        }
+    )
     }
 
     private fun setupCustomizeNotifications() = binding.apply {
