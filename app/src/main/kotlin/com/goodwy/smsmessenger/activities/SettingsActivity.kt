@@ -286,7 +286,7 @@ class SettingsActivity : SimpleActivity() {
         settingsPersianFontHolder.setOnClickListener {
             val items = arrayListOf(
                 RadioItem(FONT_TYPE_SYSTEM_DEFAULT, getString(R.string.persian_font_system_default)),
-                RadioItem(FONT_TYPE_MONOSPACE, getString(com.goodwy.strings.R.string.monospace)),
+                RadioItem(FONT_TYPE_MONOSPACE, getString(R.string.persian_font_monospace)),
                 RadioItem(FONT_TYPE_PERSIAN_VAZIRMATN, getString(R.string.persian_font_vazirmatn)),
                 RadioItem(FONT_TYPE_PERSIAN_SAHEL, getString(R.string.persian_font_sahel)),
                 RadioItem(FONT_TYPE_PERSIAN_SHABNAM, getString(R.string.persian_font_shabnam)),
