@@ -8,4 +8,5 @@
     <string name="persian_font_samim">Samim</string>
     <string name="persian_font_tanha">Tanha</string>
     <string name="persian_font_nahid">Nahid</string>
+    <string name="persian_font_monospace">Monospace</string>
 </resources>
