@@ -27,10 +27,10 @@ rxJava3 = "3.1.5"
 swipeToActionLayout = "94ab9268eb"
 googleServices = "21.0.1"
 #Gradle
-gradlePlugins-agp = "9.0.1"
+gradlePlugins-agp = "9.3.1"
 #build
-app-build-compileSDKVersion = "36"
-app-build-targetSDK = "36"
+app-build-compileSDKVersion = "37"
+app-build-targetSDK = "37"
 app-build-minimumSDK = "26"
 app-build-javaVersion = "VERSION_17"
 app-build-kotlinJVMTarget = "17"
