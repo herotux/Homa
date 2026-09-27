@@ -1,5 +1,7 @@
 package com.goodwy.smsmessenger.activities
 
+import com.goodwy.smsmessenger.activities.SearchActivity
+
 import android.annotation.SuppressLint
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
