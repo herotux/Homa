@@ -11,7 +11,7 @@ import com.goodwy.smsmessenger.models.MessageLabel
 import com.goodwy.smsmessenger.models.MessageNote
 
 object MessageAnnotationStore {
-    private fun dao(context: Context): MessageAnnotationsDao = context.messagesDB.AnnotationLabelsDao()
+    private fun dao(context: Context): MessageAnnotationsDao = context.messagesDB.MessageAnnotationsDao()
     fun getMessageLabels(context: Context, messageId: Long) = dao(context).getMessageLabels(messageId)
     fun getMessageNote(context: Context, messageId: Long) = dao(context).getMessageNote(messageId)
     fun getConversationLabels(context: Context, threadId: Long) = dao(context).getConversationLabels(threadId)
