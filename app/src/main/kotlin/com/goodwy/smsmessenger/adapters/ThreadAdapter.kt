@@ -608,10 +608,12 @@ class ThreadAdapter(
         popupMenu.menu.add(1, 2, 2, com.goodwy.strings.R.string.search_the_web).setIcon(R.drawable.ic_internet)
         popupMenu.menu.add(1, 3, 3, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
         popupMenu.menu.add(1, 4, 4, com.goodwy.commons.R.string.properties).setIcon(com.goodwy.commons.R.drawable.ic_info_vector)
-        popupMenu.menu.add(1, 5, 5, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
-        popupMenu.menu.add(1, 6, 6, com.goodwy.commons.R.string.select_text).setIcon(R.drawable.ic_text_select)
-        popupMenu.menu.add(1, 7, 7, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
-        val staticItem = 8
+        popupMenu.menu.add(1, 5, 5, R.string.annotation_add_label)
+        popupMenu.menu.add(1, 6, 6, R.string.annotation_add_note)
+        popupMenu.menu.add(1, 7, 7, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
+        popupMenu.menu.add(1, 8, 8, com.goodwy.commons.R.string.select_text).setIcon(R.drawable.ic_text_select)
+        popupMenu.menu.add(1, 9, 9, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+        val staticItem = 10
         if (numbersList.isNotEmpty()) {
             numbersList.apply {
                 val size = numbersList.size
@@ -633,7 +635,15 @@ class ThreadAdapter(
 
                 4 -> MessageDetailsDialog(activity, message)
 
-                5 -> {
+                5 -> MessageAnnotationDialogs.editLabels(activity, message) {
+                    notifyMessageAnnotationChanged(message.id)
+                }
+
+                6 -> MessageAnnotationDialogs.editNote(activity, message) {
+                    notifyMessageAnnotationChanged(message.id)
+                }
+
+                7 -> {
                     val attachment = message.attachment?.attachments?.firstOrNull()
                     Intent(activity, NewConversationActivity::class.java).apply {
                         action = Intent.ACTION_SEND
@@ -647,9 +657,9 @@ class ThreadAdapter(
                     }
                 }
 
-                6 -> SelectTextDialog(activity, text)
+                8 -> SelectTextDialog(activity, text)
 
-                7 -> activity.copyToClipboard(text)
+                9 -> activity.copyToClipboard(text)
 
                 else -> {
                     if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId - staticItem])
