@@ -198,6 +198,11 @@ class MainActivity : SimpleActivity() {
                 speechToText()
             }
 
+            mainMenu.onSearchOpenListener = {
+                startActivity(Intent(this, SearchActivity::class.java))
+                mainMenu.closeSearch()
+            }
+
             mainMenu.onSearchClosedListener = {
                 fadeOutSearch()
             }
