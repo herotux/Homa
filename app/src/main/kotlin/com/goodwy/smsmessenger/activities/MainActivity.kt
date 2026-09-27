@@ -651,8 +651,9 @@ class MainActivity : SimpleActivity() {
         if (text.length >= 2) {
             ensureBackgroundThread {
                 val searchQuery = "%$text%"
-                val messages = messagesDB.getMessagesWithText(searchQuery)
-                val conversations = conversationsDB.getConversationsWithText(searchQuery)
+                val labelQuery = "%" + text.removePrefix("#") + "%"
+                val messages = messagesDB.getMessagesWithText(searchQuery, labelQuery)
+                val conversations = conversationsDB.getConversationsWithText(searchQuery, labelQuery)
                 if (text == lastSearchedText) {
                     showSearchResults(messages, conversations, text)
                 }
