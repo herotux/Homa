@@ -82,6 +82,7 @@ import com.goodwy.smsmessenger.databinding.ItemThreadErrorBinding
 import com.goodwy.smsmessenger.databinding.ItemThreadSendingBinding
 import com.goodwy.smsmessenger.databinding.ItemThreadSuccessBinding
 import com.goodwy.smsmessenger.dialogs.DeleteConfirmationDialog
+import com.goodwy.smsmessenger.dialogs.MessageAnnotationDialogs
 import com.goodwy.smsmessenger.dialogs.MessageDetailsDialog
 import com.goodwy.smsmessenger.dialogs.SelectTextDialog
 import com.goodwy.smsmessenger.extensions.config
@@ -95,6 +96,7 @@ import com.goodwy.smsmessenger.extensions.launchViewIntent
 import com.goodwy.smsmessenger.extensions.setPaddingBubble
 import com.goodwy.smsmessenger.extensions.startContactDetailsIntentRecommendation
 import com.goodwy.smsmessenger.extensions.subscriptionManagerCompat
+import com.goodwy.smsmessenger.helpers.MessageAnnotationStore
 import com.goodwy.smsmessenger.helpers.ACTION_COPY_CODE
 import com.goodwy.smsmessenger.helpers.ACTION_COPY_MESSAGE
 import com.goodwy.smsmessenger.helpers.ACTION_NOTHING
@@ -113,6 +115,7 @@ import com.goodwy.smsmessenger.helpers.generateStableId
 import com.goodwy.smsmessenger.helpers.setupDocumentPreview
 import com.goodwy.smsmessenger.helpers.setupVCardPreview
 import com.goodwy.smsmessenger.models.Attachment
+import com.goodwy.smsmessenger.views.MessageAnnotationsView
 import com.goodwy.smsmessenger.models.Message
 import com.goodwy.smsmessenger.models.ThreadItem
 import com.goodwy.smsmessenger.models.ThreadItem.ThreadDateTime
@@ -168,6 +171,8 @@ class ThreadAdapter(
             findItem(R.id.cab_forward_message).isVisible = isOneItemSelected
             findItem(R.id.cab_select_text).isVisible = isOneItemSelected && hasText
             findItem(R.id.cab_properties).isVisible = isOneItemSelected
+            findItem(R.id.cab_add_label).isVisible = isOneItemSelected && !isRecycleBin
+            findItem(R.id.cab_add_note).isVisible = isOneItemSelected && !isRecycleBin
             findItem(R.id.cab_restore).isVisible = isRecycleBin
         }
     }
@@ -187,6 +192,8 @@ class ThreadAdapter(
             R.id.cab_restore -> askConfirmRestore()
             R.id.cab_select_all -> selectAll()
             R.id.cab_properties -> showMessageDetails()
+            R.id.cab_add_label -> editSelectedLabels()
+            R.id.cab_add_note -> editSelectedNote()
         }
     }
 
@@ -305,6 +312,20 @@ class ThreadAdapter(
     private fun showMessageDetails() {
         val message = getSelectedItems().firstOrNull() as? Message ?: return
         MessageDetailsDialog(activity, message)
+    }
+
+    private fun editSelectedLabels() {
+        val message = getSelectedItems().firstOrNull() as? Message ?: return
+        MessageAnnotationDialogs.editLabels(activity, message) { notifyMessageAnnotationChanged(message.id) }
+    }
+
+    private fun editSelectedNote() {
+        val message = getSelectedItems().firstOrNull() as? Message ?: return
+        MessageAnnotationDialogs.editNote(activity, message) { notifyMessageAnnotationChanged(message.id) }
+    }
+
+    private fun notifyMessageAnnotationChanged(messageId: Long) {
+        currentList.indexOfFirst { (it as? Message)?.id == messageId }.takeIf { it >= 0 }?.let { notifyItemChanged(it) }
     }
 
     private fun askConfirmDelete(message: Message? = null) {
@@ -551,7 +572,32 @@ class ThreadAdapter(
                 threadMessagePlayOutline.beGone()
             }
         }
+        setupAnnotations(holder, ItemMessageBinding.bind(view), message)
     }
+    private fun setupAnnotations(holder: ViewHolder, binding: ItemMessageBinding, message: Message) {
+        val wrapper = binding.threadMessageWrapper
+        val tag = "homa_annotations"
+        var annotations = wrapper.findViewWithTag<MessageAnnotationsView>(tag)
+        if (annotations == null) {
+            annotations = MessageAnnotationsView(activity).apply { this.tag = tag }
+            wrapper.addView(annotations, RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                addRule(RelativeLayout.BELOW, binding.threadMessageBodyWrapper.id)
+                addRule(RelativeLayout.ALIGN_START, binding.threadMessageBodyWrapper.id)
+                addRule(RelativeLayout.ALIGN_END, binding.threadMessageBodyWrapper.id)
+                topMargin = (2 * activity.resources.displayMetrics.density).toInt()
+            })
+        }
+        annotations.render(emptyList(), null)
+        ensureBackgroundThread {
+            val labels = MessageAnnotationStore.getMessageLabels(activity, message.id)
+            val note = MessageAnnotationStore.getMessageNote(activity, message.id)
+            activity.runOnUiThread {
+                if (!activity.isDestroyed && !activity.isFinishing) annotations?.render(labels, note)
+            }
+        }
+    }
+
+
 
     private fun showPopupMenu(message: Message, view: View) {
         val wrapper: Context = ContextThemeWrapper(activity, activity.getPopupMenuTheme())
@@ -562,10 +608,12 @@ class ThreadAdapter(
         popupMenu.menu.add(1, 2, 2, com.goodwy.strings.R.string.search_the_web).setIcon(R.drawable.ic_internet)
         popupMenu.menu.add(1, 3, 3, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
         popupMenu.menu.add(1, 4, 4, com.goodwy.commons.R.string.properties).setIcon(com.goodwy.commons.R.drawable.ic_info_vector)
-        popupMenu.menu.add(1, 5, 5, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
-        popupMenu.menu.add(1, 6, 6, com.goodwy.commons.R.string.select_text).setIcon(R.drawable.ic_text_select)
-        popupMenu.menu.add(1, 7, 7, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
-        val staticItem = 8
+        popupMenu.menu.add(1, 5, 5, R.string.annotation_add_label)
+        popupMenu.menu.add(1, 6, 6, R.string.annotation_add_note)
+        popupMenu.menu.add(1, 7, 7, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
+        popupMenu.menu.add(1, 8, 8, com.goodwy.commons.R.string.select_text).setIcon(R.drawable.ic_text_select)
+        popupMenu.menu.add(1, 9, 9, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+        val staticItem = 10
         if (numbersList.isNotEmpty()) {
             numbersList.apply {
                 val size = numbersList.size
@@ -587,7 +635,15 @@ class ThreadAdapter(
 
                 4 -> MessageDetailsDialog(activity, message)
 
-                5 -> {
+                5 -> MessageAnnotationDialogs.editLabels(activity, message) {
+                    notifyMessageAnnotationChanged(message.id)
+                }
+
+                6 -> MessageAnnotationDialogs.editNote(activity, message) {
+                    notifyMessageAnnotationChanged(message.id)
+                }
+
+                7 -> {
                     val attachment = message.attachment?.attachments?.firstOrNull()
                     Intent(activity, NewConversationActivity::class.java).apply {
                         action = Intent.ACTION_SEND
@@ -601,9 +657,9 @@ class ThreadAdapter(
                     }
                 }
 
-                6 -> SelectTextDialog(activity, text)
+                8 -> SelectTextDialog(activity, text)
 
-                7 -> activity.copyToClipboard(text)
+                9 -> activity.copyToClipboard(text)
 
                 else -> {
                     if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId - staticItem])
@@ -635,12 +691,14 @@ class ThreadAdapter(
                         item.icon!!.setColorFilter(colorRed, PorterDuff.Mode.SRC_IN)
                     }
                 } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        item.icon!!.colorFilter = BlendModeColorFilter(
-                            textColor, BlendMode.SRC_IN
-                        )
-                    } else {
-                        item.icon!!.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
+                    item.icon?.let { icon ->
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            icon.colorFilter = BlendModeColorFilter(
+                                textColor, BlendMode.SRC_IN
+                            )
+                        } else {
+                            icon.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
+                        }
                     }
                 }
             }
