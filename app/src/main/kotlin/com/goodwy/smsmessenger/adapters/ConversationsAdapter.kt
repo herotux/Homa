@@ -112,6 +112,8 @@ class ConversationsAdapter(
             R.id.cab_archive -> askConfirmArchive()
             R.id.cab_conversation_details ->
                 activity.launchConversationDetails(getSelectedItems().first().threadId)
+            R.id.cab_add_label -> editSelectedLabels()
+            R.id.cab_add_note -> editSelectedNote()
 
             R.id.cab_rename_conversation -> renameConversation(getSelectedItems().first())
             R.id.cab_mark_as_read -> markAsRead()
@@ -120,6 +122,26 @@ class ConversationsAdapter(
             R.id.cab_unpin_conversation -> pinConversation(false)
             R.id.cab_select_all -> selectAll()
         }
+    }
+
+    private fun editSelectedLabels() {
+        val conversation = getSelectedItems().firstOrNull() ?: return
+        ConversationAnnotationDialogs.editLabels(activity, conversation) {
+            notifyConversationAnnotationChanged(conversation.threadId)
+        }
+    }
+
+    private fun editSelectedNote() {
+        val conversation = getSelectedItems().firstOrNull() ?: return
+        ConversationAnnotationDialogs.editNote(activity, conversation) {
+            notifyConversationAnnotationChanged(conversation.threadId)
+        }
+    }
+
+    private fun notifyConversationAnnotationChanged(threadId: Long) {
+        currentList.indexOfFirst { it.threadId == threadId }
+            .takeIf { it >= 0 }
+            ?.let { notifyItemChanged(it) }
     }
 
     private fun askConfirmBlock() {
