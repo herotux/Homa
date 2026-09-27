@@ -39,8 +39,14 @@ interface ConversationsDao {
     @Query("SELECT * FROM conversations WHERE read = 0")
     fun getUnreadConversations(): List<Conversation>
 
-    @Query("SELECT * FROM conversations WHERE title LIKE :text")
-    fun getConversationsWithText(text: String): List<Conversation>
+    @Query("""
+        SELECT DISTINCT conversations.* FROM conversations
+        WHERE title LIKE :text
+        OR EXISTS (SELECT 1 FROM conversation_labels cl INNER JOIN annotation_labels l ON l.id = cl.label_id WHERE cl.thread_id = conversations.thread_id AND l.name LIKE :textNoHash)
+        OR EXISTS (SELECT 1 FROM conversation_notes n WHERE n.thread_id = conversations.thread_id AND n.text LIKE :text)
+        ORDER BY conversations.date DESC
+    """)
+    fun getConversationsWithText(text: String, textNoHash: String): List<Conversation>
 
     @Query("UPDATE conversations SET read = 1 WHERE thread_id = :threadId")
     fun markRead(threadId: Long)
