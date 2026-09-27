@@ -691,12 +691,14 @@ class ThreadAdapter(
                         item.icon!!.setColorFilter(colorRed, PorterDuff.Mode.SRC_IN)
                     }
                 } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        item.icon!!.colorFilter = BlendModeColorFilter(
-                            textColor, BlendMode.SRC_IN
-                        )
-                    } else {
-                        item.icon!!.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
+                    item.icon?.let { icon ->
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            icon.colorFilter = BlendModeColorFilter(
+                                textColor, BlendMode.SRC_IN
+                            )
+                        } else {
+                            icon.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
+                        }
                     }
                 }
             }
