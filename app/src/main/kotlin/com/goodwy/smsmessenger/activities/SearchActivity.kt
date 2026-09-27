@@ -96,7 +96,7 @@ class SearchActivity : SimpleActivity() {
                     show()
                 }
             }
-        }
+        }.start()
     }
 
     private fun runSearch() {
@@ -107,7 +107,7 @@ class SearchActivity : SimpleActivity() {
             return
         }
 
-        ensureBackgroundThread {
+        Thread {
             val text = "%$query%"
             val textNoHash = "%${query.removePrefix("#")}%"
             val messages = try {
@@ -123,7 +123,7 @@ class SearchActivity : SimpleActivity() {
             if (query == lastQuery && labelId == selectedLabelId) {
                 showResults(messages, conversations, query)
             }
-        }
+        }.start()
     }
 
     private fun showResults(messages: List<Message>, conversations: List<Conversation>, searchedText: String) {
