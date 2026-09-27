@@ -320,7 +320,7 @@ class SettingsActivity : SimpleActivity() {
             FONT_TYPE_PERSIAN_SAMIM -> R.string.persian_font_samim
             FONT_TYPE_PERSIAN_TANHA -> R.string.persian_font_tanha
             FONT_TYPE_PERSIAN_NAHID -> R.string.persian_font_nahid
-            FONT_TYPE_MONOSPACE -> com.goodwy.commons.R.string.monospace
+            FONT_TYPE_MONOSPACE -> R.string.persian_font_monospace
             FONT_TYPE_CUSTOM -> com.goodwy.commons.R.string.custom
             else -> R.string.persian_font_system_default
         }
