@@ -201,7 +201,7 @@ class MainActivity : SimpleActivity() {
             }
 
             mainMenu.onSearchOpenListener = {
-                startActivity(Intent(this, SearchActivity::class.java))
+                startActivity(Intent(this@MainActivity, SearchActivity::class.java))
                 mainMenu.closeSearch()
             }
 
