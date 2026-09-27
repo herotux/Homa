@@ -69,6 +69,13 @@
             android:exported="true" />
 
         <activity
+            android:name=".activities.SearchActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/search"
+            android:parentActivityName=".activities.MainActivity" />
+
+        <activity
             android:name=".activities.RecycleBinConversationsActivity"
             android:configChanges="orientation"
             android:exported="true"
