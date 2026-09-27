@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.goodwy.smsmessenger.helpers.Converters
-import com.goodwy.smsmessenger.interfaces.AnnotationLabelsDao
+import com.goodwy.smsmessenger.interfaces.MessageAnnotationsDao
 import com.goodwy.smsmessenger.interfaces.AttachmentsDao
 import com.goodwy.smsmessenger.interfaces.ConversationsDao
 import com.goodwy.smsmessenger.interfaces.DraftsDao
@@ -47,7 +47,7 @@ abstract class MessagesDatabase : RoomDatabase() {
 
     abstract fun ConversationsDao(): ConversationsDao
 
-    abstract fun AnnotationLabelsDao(): AnnotationLabelsDao
+    abstract fun MessageAnnotationsDao(): MessageAnnotationsDao
 
     abstract fun AttachmentsDao(): AttachmentsDao
 
