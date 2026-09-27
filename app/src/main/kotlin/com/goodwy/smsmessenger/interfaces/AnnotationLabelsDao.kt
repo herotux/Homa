@@ -13,7 +13,7 @@ import com.goodwy.smsmessenger.models.MessageLabel
 import com.goodwy.smsmessenger.models.MessageNote
 
 @Dao
-interface MessageAnnotationsDao {
+interface AnnotationLabelsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE) fun insertLabel(label: AnnotationLabel): Long
     @Query("SELECT * FROM annotation_labels ORDER BY name COLLATE NOCASE") fun getLabels(): List<AnnotationLabel>
     @Query("SELECT * FROM annotation_labels WHERE name = :name COLLATE NOCASE LIMIT 1") fun getLabelByName(name: String): AnnotationLabel?
