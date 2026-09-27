@@ -64,7 +64,7 @@ class SearchActivity : SimpleActivity() {
     }
 
     private fun showLabelMenu(anchor: View) {
-        ensureBackgroundThread {
+        Thread {
             val labels = try {
                 getMessagesDB().AnnotationLabelsDao().getLabels()
             } catch (_: Exception) {
