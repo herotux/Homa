@@ -2,7 +2,7 @@ package com.goodwy.smsmessenger.helpers
 
 import android.content.Context
 import com.goodwy.commons.extensions.getProperPrimaryColor
-import com.goodwy.smsmessenger.extensions.messagesDB
+import com.goodwy.smsmessenger.extensions.getMessagesDB
 import com.goodwy.smsmessenger.models.AnnotationLabel
 import com.goodwy.smsmessenger.models.ConversationLabel
 import com.goodwy.smsmessenger.models.ConversationNote
