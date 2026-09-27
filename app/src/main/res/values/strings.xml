@@ -139,4 +139,11 @@
     <string name="faq_3_text">Yes, you can schedule messages to be sent in the future by long pressing the Send button and picking the desired date and time.</string>
     <string name="faq_4_title">Why do my group message replies appear as individual texts to recipients?</string>
     <string name="faq_4_text">You need to enable \"Send group messages as MMS\" in the app settings. This will ensure that group messages are sent as proper MMS, allowing all participants to see each other\'s replies.</string>
+    <string name="search">Search</string>
+    <string name="search_messages_and_conversations">Search messages and conversations…</string>
+    <string name="search_filter_label">Label: All</string>
+    <string name="search_all_labels">All labels</string>
+    <string name="search_no_labels">No labels yet</string>
+    <string name="search_no_results">No results found</string>
+    <string name="search_type_at_least_two_characters">Type at least 2 characters or choose a label</string>
 </resources>
