@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="annotation_add_label">Add labels</string>
+    <string name="annotation_add_tag">Add tags</string>
     <string name="annotation_add_note">Add note</string>
-    <string name="annotation_labels_hint">Labels, separated by commas</string>
-    <string name="annotation_labels_help">Use #work, #important or plain names. Existing labels are reused.</string>
+    <string name="annotation_tags_hint">Tags, separated by commas</string>
+    <string name="annotation_tags_help">Use #work, #important or plain names. Existing tags are reused.</string>
     <string name="annotation_note_hint">Write a private note about this message or conversation…</string>
+
+    <!-- Compatibility aliases for existing menu/resource ids. -->
+    <string name="annotation_add_label">@string/annotation_add_tag</string>
+    <string name="annotation_labels_hint">@string/annotation_tags_hint</string>
+    <string name="annotation_labels_help">@string/annotation_tags_help</string>
 </resources>

@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: herotux/Homa-Commons
-          ref: 6a845aecdb04e7b47510d81625ddd326e911b941
+          ref: 3eef02c5fa21719b1ee85d9d959a23c6b33635c7
           path: homa-commons
 
       - name: Set up JDK 17
@@ -36,7 +36,7 @@ jobs:
 
       - name: Publish Homa-Commons FOSS to Maven Local
         working-directory: homa-commons
-        run: ./gradlew :commons:publishFossReleasePublicationToMavenLocal -PVERSION=6a845aecdb04e7b47510d81625ddd326e911b941 --stacktrace --no-daemon
+        run: ./gradlew :commons:publishFossReleasePublicationToMavenLocal -PVERSION=3eef02c5fa21719b1ee85d9d959a23c6b33635c7 --stacktrace --no-daemon
 
       - name: Prepare local.properties
         shell: bash

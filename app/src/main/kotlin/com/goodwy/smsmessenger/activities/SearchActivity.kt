@@ -21,7 +21,7 @@ import java.util.ArrayList
 
 class SearchActivity : SimpleActivity() {
     private val binding by viewBinding(ActivitySearchBinding::inflate)
-    private var selectedLabelId: Long? = null
+    private var selectedTagId: Long? = null
     private var lastQuery = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +31,7 @@ class SearchActivity : SimpleActivity() {
         updateTextColors(binding.root)
         setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.resultsList))
         setupSearch()
-        setupLabelFilter()
+        setupTagFilter()
         showPlaceholder(getString(R.string.search_type_at_least_two_characters))
     }
 
@@ -59,13 +59,13 @@ class SearchActivity : SimpleActivity() {
         binding.searchMenu.clearSearch()
     }
 
-    private fun setupLabelFilter() {
-        binding.labelFilter.setOnClickListener { showLabelMenu(binding.labelFilter) }
+    private fun setupTagFilter() {
+        binding.tagFilter.setOnClickListener { showTagMenu(binding.tagFilter) }
     }
 
-    private fun showLabelMenu(anchor: View) {
-        Thread {
-            val labels = try {
+    private fun showTagMenu(anchor: View) {
+        ensureBackgroundThread {
+            val tags = try {
                 getMessagesDB().AnnotationLabelsDao().getLabels()
             } catch (_: Exception) {
                 emptyList()
@@ -73,21 +73,21 @@ class SearchActivity : SimpleActivity() {
 
             runOnUiThread {
                 PopupMenu(this, anchor).apply {
-                    menu.add(Menu.NONE, 0, 0, getString(R.string.search_all_labels))
-                    labels.forEachIndexed { index, label ->
-                        menu.add(Menu.NONE, index + 1, index + 1, "#${label.name}")
+                    menu.add(Menu.NONE, 0, 0, getString(R.string.search_all_tags))
+                    tags.forEachIndexed { index, tag ->
+                        menu.add(Menu.NONE, index + 1, index + 1, "#${tag.name}")
                     }
-                    if (labels.isEmpty()) {
-                        menu.add(Menu.NONE, -1, 1, getString(R.string.search_no_labels)).isEnabled = false
+                    if (tags.isEmpty()) {
+                        menu.add(Menu.NONE, -1, 1, getString(R.string.search_no_tags)).isEnabled = false
                     }
                     setOnMenuItemClickListener { item ->
                         if (item.itemId == 0) {
-                            selectedLabelId = null
-                            binding.labelFilter.text = getString(R.string.search_filter_label)
+                            selectedTagId = null
+                            binding.tagFilter.text = getString(R.string.search_filter_tag)
                         } else {
-                            labels.getOrNull(item.itemId - 1)?.let { label ->
-                                selectedLabelId = label.id
-                                binding.labelFilter.text = "Label: #${label.name}"
+                            tags.getOrNull(item.itemId - 1)?.let { tag ->
+                                selectedTagId = tag.id
+                                binding.tagFilter.text = "Tag: #${tag.name}"
                             }
                         }
                         runSearch()
@@ -96,39 +96,38 @@ class SearchActivity : SimpleActivity() {
                     show()
                 }
             }
-        }.start()
+        }
     }
 
     private fun runSearch() {
         val query = lastQuery.trim()
-        val labelId = selectedLabelId
-        if (query.length < 2 && labelId == null) {
+        val tagId = selectedTagId
+        if (query.length < 2 && tagId == null) {
             showPlaceholder(getString(R.string.search_type_at_least_two_characters))
             return
         }
 
-        Thread {
+        ensureBackgroundThread {
             val text = "%$query%"
             val textNoHash = "%${query.removePrefix("#")}%"
             val messages = try {
-                if (labelId != null) messagesDB.getMessagesWithTextAndLabel(text, textNoHash, labelId)
+                if (tagId != null) messagesDB.getMessagesWithTextAndLabel(text, textNoHash, tagId)
                 else messagesDB.getMessagesWithText(text, textNoHash)
             } catch (_: Exception) { emptyList() }
 
             val conversations = try {
-                if (labelId != null) conversationsDB.getConversationsWithTextAndLabel(text, textNoHash, labelId)
+                if (tagId != null) conversationsDB.getConversationsWithTextAndLabel(text, textNoHash, tagId)
                 else conversationsDB.getConversationsWithText(text, textNoHash)
             } catch (_: Exception) { emptyList() }
 
-            if (query == lastQuery && labelId == selectedLabelId) {
+            if (query == lastQuery && tagId == selectedTagId) {
                 showResults(messages, conversations, query)
             }
-        }.start()
+        }
     }
 
     private fun showResults(messages: List<Message>, conversations: List<Conversation>, searchedText: String) {
         val results = ArrayList<SearchResult>()
-
         conversations.forEach { conversation ->
             results.add(SearchResult(
                 messageId = -1,
@@ -142,7 +141,6 @@ class SearchActivity : SimpleActivity() {
                 isBlocked = conversation.isBlocked
             ))
         }
-
         messages.sortedByDescending { it.id }.forEach { message ->
             var recipient = message.senderName
             if (recipient.isEmpty() && message.participants.isNotEmpty()) {
@@ -162,7 +160,6 @@ class SearchActivity : SimpleActivity() {
                 isCompany = isCompany
             ))
         }
-
         runOnUiThread {
             if (results.isEmpty()) {
                 showPlaceholder(getString(R.string.search_no_results))

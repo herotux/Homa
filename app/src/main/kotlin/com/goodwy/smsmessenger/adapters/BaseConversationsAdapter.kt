@@ -399,54 +399,30 @@ abstract class BaseConversationsAdapter(
         body: View,
         conversation: Conversation
     ) {
-        val tag = "homa_conversation_annotations"
-        var box = container.findViewWithTag<android.widget.LinearLayout>(tag)
-        if (box == null) {
-            box = android.widget.LinearLayout(activity).apply {
-                this.tag = tag
-                orientation = android.widget.LinearLayout.HORIZONTAL
-                gravity = android.view.Gravity.START or android.view.Gravity.CENTER_VERTICAL
-            }
-            container.addView(box, androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(0, dp(22)).apply {
-                startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-                endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-                marginStart = dp(56)
-                marginEnd = dp(56)
-            })
+        val tag = "homa_conversation_tags_notes"
+        var annotations = container.findViewWithTag<com.goodwy.commons.views.TagNoteView>(tag)
+        if (annotations == null) {
+            annotations = com.goodwy.commons.views.TagNoteView(activity).apply { this.tag = tag }
+            container.addView(
+                annotations,
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(0, dp(44)).apply {
+                    startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+                    endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+                    bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+                    marginStart = dp(56)
+                    marginEnd = dp(56)
+                }
+            )
         }
-        box.visibility = View.GONE
+        annotations.visibility = View.GONE
         ensureBackgroundThread {
-            val labels = MessageAnnotationStore.getConversationLabels(activity, conversation.threadId).take(3)
-            val note = MessageAnnotationStore.getConversationNote(activity, conversation.threadId)?.text?.trim().orEmpty()
+            val tags = MessageAnnotationStore.getConversationLabels(activity, conversation.threadId).take(3)
+            val note = MessageAnnotationStore.getConversationNote(activity, conversation.threadId)
             activity.runOnUiThread {
                 if (activity.isDestroyed || activity.isFinishing) return@runOnUiThread
-                box.removeAllViews()
-                labels.forEach { label ->
-                    box.addView(TextView(activity).apply {
-                        text = "#" + label.name
-                        textSize = 10f
-                        setTextColor(label.color)
-                        gravity = android.view.Gravity.CENTER
-                        layoutParams = android.widget.LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT, dp(20)
-                        ).apply { marginEnd = dp(5) }
-                    })
-                }
-                if (note.isNotEmpty()) {
-                    box.addView(TextView(activity).apply {
-                        text = "Note  ·  " + note
-                        textSize = 10f
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
-                        alpha = .7f
-                        setTextColor(textColor)
-                        layoutParams = android.widget.LinearLayout.LayoutParams(0, dp(20), 1f)
-                    })
-                }
-                box.visibility = if (labels.isEmpty() && note.isEmpty()) View.GONE else View.VISIBLE
+                annotations.render(tags, note)
                 (body.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)?.let { lp ->
-                    lp.bottomMargin = if (box.visibility == View.VISIBLE) dp(22) else 0
+                    lp.bottomMargin = if (annotations.visibility == View.VISIBLE) dp(44) else 0
                     body.layoutParams = lp
                 }
             }
