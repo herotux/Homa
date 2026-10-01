@@ -12,12 +12,19 @@ import com.goodwy.commons.helpers.PurchaseHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.smsmessenger.extensions.rescheduleAllScheduledMessages
 import com.goodwy.smsmessenger.helpers.MessagingCache
+import com.goodwy.smsmessenger.helpers.HomaDiagnostics
 
 class App : RightApp() {
     override val isAppLockFeatureAvailable = true
 
     override fun onCreate() {
         super.onCreate()
+        HomaDiagnostics.init(this)
+        val previousUncaughtHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            HomaDiagnostics.error("UNCAUGHT_EXCEPTION", throwable)
+            previousUncaughtHandler?.uncaughtException(thread, throwable)
+        }
         PurchaseHelper().initPurchaseIfNeed(this, "685530047")
 
         if (hasPermission(PERMISSION_READ_CONTACTS)) {

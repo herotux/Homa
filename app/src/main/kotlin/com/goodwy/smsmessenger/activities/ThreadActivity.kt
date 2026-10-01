@@ -237,6 +237,7 @@ class ThreadActivity : SimpleActivity() {
 //    }
 
     override fun onDestroy() {
+        HomaDiagnostics.log("THREAD_ON_DESTROY", "threadId=" + threadId)
         super.onDestroy()
         bus?.unregister(this)
     }
@@ -352,17 +353,19 @@ class ThreadActivity : SimpleActivity() {
 
     private fun setupCachedMessages(callback: () -> Unit) {
         ensureBackgroundThread {
+            val started = System.nanoTime()
             messages = try {
-                if (isRecycleBin) {
-                    messagesDB.getThreadMessagesFromRecycleBin(threadId)
-                } else {
-                    if (config.useRecycleBin) {
-                        messagesDB.getNonRecycledThreadMessages(threadId)
+                HomaDiagnostics.timed("THREAD_CACHE_QUERY") {
+                    if (isRecycleBin) {
+                        messagesDB.getRecentThreadMessagesFromRecycleBin(threadId, MESSAGES_LIMIT)
+                    } else if (config.useRecycleBin) {
+                        messagesDB.getRecentNonRecycledThreadMessages(threadId, MESSAGES_LIMIT)
                     } else {
-                        messagesDB.getThreadMessages(threadId)
-                    }
-                }.toMutableList() as ArrayList<Message>
-            } catch (_: Exception) {
+                        messagesDB.getRecentThreadMessages(threadId, MESSAGES_LIMIT)
+                    }.toMutableList() as ArrayList<Message>
+                }
+            } catch (e: Exception) {
+                HomaDiagnostics.error("THREAD_CACHE_QUERY_FAILED", e)
                 ArrayList()
             }
             clearExpiredScheduledMessages(threadId, messages)
@@ -374,6 +377,7 @@ class ThreadActivity : SimpleActivity() {
             }
 
             setupParticipants()
+            HomaDiagnostics.log("THREAD_CACHE_READY", "threadId=" + threadId + " messages=" + messages.size + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
             setupAdapter()
 
             runOnUiThread {
@@ -407,7 +411,9 @@ class ThreadActivity : SimpleActivity() {
 
             val cachedMessagesCode = messages.clone().hashCode()
             if (!isRecycleBin) {
+                val refreshStarted = System.nanoTime()
                 messages = getMessages(threadId)
+                HomaDiagnostics.log("THREAD_PROVIDER_REFRESH", "threadId=" + threadId + " messages=" + messages.size + " durationMs=" + ((System.nanoTime() - refreshStarted) / 1_000_000))
                 if (config.useRecycleBin) {
                     val recycledMessages = messagesDB.getThreadMessagesFromRecycleBin(threadId)
                     messages = messages.filterNotInByKey(recycledMessages) { it.getStableId() }

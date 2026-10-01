@@ -33,6 +33,7 @@ import com.goodwy.smsmessenger.helpers.SEARCHED_MESSAGE_ID
 import com.goodwy.smsmessenger.helpers.THREAD_ID
 import com.goodwy.smsmessenger.helpers.THREAD_TITLE
 import com.goodwy.smsmessenger.helpers.whatsNewList
+import com.goodwy.smsmessenger.helpers.HomaDiagnostics
 import com.goodwy.smsmessenger.models.Conversation
 import com.goodwy.smsmessenger.models.Events
 import com.goodwy.smsmessenger.models.Message
@@ -55,6 +56,8 @@ class MainActivity : SimpleActivity() {
     private var lastSearchedText = ""
     private var bus: EventBus? = null
     private var isSpeechToTextAvailable = false
+    private var conversationLoadToken = 0L
+    private var scrollListenersAttached = false
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
@@ -81,6 +84,8 @@ class MainActivity : SimpleActivity() {
 
         if (config.wasReminderWarningShown) checkWhatsNewDialog()
         storeStateVariables()
+        attachScrollListenersOnce()
+        HomaDiagnostics.log("MAIN_ON_CREATE", "activity=" + System.identityHashCode(this))
 
         checkAndDeleteOldRecycleBinMessages()
         clearAllMessagesIfNeeded {
@@ -136,20 +141,6 @@ class MainActivity : SimpleActivity() {
         binding.conversationsProgressBar.trackColor = properPrimaryColor.adjustAlpha(LOWER_ALPHA)
         checkShortcut()
 
-        binding.conversationsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(recyclerView, newState)
-                hideKeyboard()
-            }
-        })
-
-        binding.searchResultsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(recyclerView, newState)
-                hideKeyboard()
-            }
-        })
-
         // Top bar scroll
         val params = binding.mainMenu.layoutParams as AppBarLayout.LayoutParams
         params.scrollFlags = if (config.hideTopBarWhenScroll) {
@@ -170,9 +161,25 @@ class MainActivity : SimpleActivity() {
     }
 
     override fun onDestroy() {
+        HomaDiagnostics.log("MAIN_ON_DESTROY", "activity=" + System.identityHashCode(this))
         super.onDestroy()
         config.needRestart = false
         bus?.unregister(this)
+    }
+
+    private fun attachScrollListenersOnce() {
+        if (scrollListenersAttached) return
+        scrollListenersAttached = true
+        binding.conversationsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING || newState == RecyclerView.SCROLL_STATE_SETTLING) hideKeyboard()
+            }
+        })
+        binding.searchResultsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING || newState == RecyclerView.SCROLL_STATE_SETTLING) hideKeyboard()
+            }
+        })
     }
 
     override fun onBackPressedCompat(): Boolean {
@@ -405,95 +412,85 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun getCachedConversations() {
+        val token = ++conversationLoadToken
+        HomaDiagnostics.log("MAIN_LOAD_START", "token=" + token)
         ensureBackgroundThread {
+            val started = System.nanoTime()
             val conversations = try {
-                conversationsDB.getNonArchived().toMutableList() as ArrayList<Conversation>
-            } catch (_: Exception) {
+                HomaDiagnostics.timed("DB_CONVERSATIONS_CACHE") {
+                    conversationsDB.getNonArchived().toMutableList() as ArrayList<Conversation>
+                }
+            } catch (e: Exception) {
+                HomaDiagnostics.error("DB_CONVERSATIONS_CACHE_FAILED", e)
                 ArrayList()
             }
-
             val archived = try {
-                conversationsDB.getAllArchived()
-            } catch (_: Exception) {
-                listOf()
+                HomaDiagnostics.timed("DB_ARCHIVED_CACHE") { conversationsDB.getAllArchived() }
+            } catch (e: Exception) {
+                HomaDiagnostics.error("DB_ARCHIVED_CACHE_FAILED", e)
+                emptyList()
             }
-
+            HomaDiagnostics.log("MAIN_CACHE_READY", "token=" + token + " conversations=" + conversations.size + " archived=" + archived.size + " totalMs=" + ((System.nanoTime() - started) / 1_000_000))
             runOnUiThread {
+                if (token != conversationLoadToken || isFinishing || isDestroyed) return@runOnUiThread
                 setupConversations(conversations, cached = true)
-                getNewConversations(
-                    (conversations + archived).toMutableList() as ArrayList<Conversation>
-                )
+                getNewConversations((conversations + archived).toMutableList() as ArrayList<Conversation>, token)
             }
-            conversations.forEach {
-                clearExpiredScheduledMessages(it.threadId)
-            }
+            conversations.forEach { clearExpiredScheduledMessages(it.threadId) }
         }
     }
 
-    private fun getNewConversations(cachedConversations: ArrayList<Conversation>) {
+    private fun getNewConversations(cachedConversations: ArrayList<Conversation>, token: Long) {
         val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
         ensureBackgroundThread {
-            val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
-            val conversations = getConversations(privateContacts = privateContacts)
-
-            conversations.forEach { clonedConversation ->
-                val threadIds = cachedConversations.map { it.threadId }
-                if (!threadIds.contains(clonedConversation.threadId)) {
-                    conversationsDB.insertOrUpdate(clonedConversation)
-                    cachedConversations.add(clonedConversation)
-                }
-            }
-
-            cachedConversations.forEach { cachedConversation ->
-                val threadId = cachedConversation.threadId
-
-                val isTemporaryThread = cachedConversation.isScheduled
-                val isConversationDeleted = !conversations.map { it.threadId }.contains(threadId)
-                if (isConversationDeleted && !isTemporaryThread) {
-                    conversationsDB.deleteThreadId(threadId)
-                }
-
-                val newConversation =
-                    conversations.find { it.phoneNumber == cachedConversation.phoneNumber }
-                if (isTemporaryThread && newConversation != null) {
-                    // delete the original temporary thread and move any scheduled messages
-                    // to the new thread
-                    conversationsDB.deleteThreadId(threadId)
-                    messagesDB.getScheduledThreadMessages(threadId)
-                        .forEach { message ->
-                            messagesDB.insertOrUpdate(
-                                message.copy(threadId = newConversation.threadId)
-                            )
-                        }
-                    insertOrUpdateConversation(newConversation, cachedConversation)
-                }
-            }
-
-            cachedConversations.forEach { cachedConv ->
-                val conv = conversations.find {
-                    it.threadId == cachedConv.threadId && !Conversation.areContentsTheSame(
-                        old = cachedConv, new = it
-                    )
-                }
-                if (conv != null) {
-                    // FIXME: Scheduled message date is being reset here. Conversations with
-                    //  scheduled messages will have their original date.
-                    insertOrUpdateConversation(conv)
-                }
-            }
-
-            val allConversations = conversationsDB.getNonArchived() as ArrayList<Conversation>
-            runOnUiThread {
-                setupConversations(allConversations)
-            }
-
-            if (config.appRunCount == 1) {
-                conversations.map { it.threadId }.forEach { threadId ->
-                    val messages = getMessages(threadId, includeScheduledMessages = false)
-                    messages.chunked(30).forEach { currentMessages ->
-                        messagesDB.insertMessages(*currentMessages.toTypedArray())
+            val started = System.nanoTime()
+            try {
+                val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
+                HomaDiagnostics.log("MAIN_CONTACTS_READY", "token=" + token + " contacts=" + privateContacts.size)
+                val conversations = getConversations(privateContacts = privateContacts)
+                HomaDiagnostics.log("MAIN_PROVIDER_READY", "token=" + token + " conversations=" + conversations.size + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
+                conversations.forEach { cloned ->
+                    if (cachedConversations.none { it.threadId == cloned.threadId }) {
+                        conversationsDB.insertOrUpdate(cloned)
+                        cachedConversations.add(cloned)
                     }
                 }
+                cachedConversations.forEach { cached ->
+                    val threadId = cached.threadId
+                    val temporary = cached.isScheduled
+                    val deleted = conversations.none { it.threadId == threadId }
+                    if (deleted && !temporary) conversationsDB.deleteThreadId(threadId)
+                    val replacement = conversations.find { it.phoneNumber == cached.phoneNumber }
+                    if (temporary && replacement != null) {
+                        conversationsDB.deleteThreadId(threadId)
+                        messagesDB.getScheduledThreadMessages(threadId).forEach { message ->
+                            messagesDB.insertOrUpdate(message.copy(threadId = replacement.threadId))
+                        }
+                        insertOrUpdateConversation(replacement, cached)
+                    }
+                }
+                cachedConversations.forEach { cached ->
+                    val fresh = conversations.find {
+                        it.threadId == cached.threadId && !Conversation.areContentsTheSame(cached, it)
+                    }
+                    if (fresh != null) insertOrUpdateConversation(fresh)
+                }
+                val allConversations = conversationsDB.getNonArchived() as ArrayList<Conversation>
+                runOnUiThread {
+                    if (token != conversationLoadToken || isFinishing || isDestroyed) return@runOnUiThread
+                    HomaDiagnostics.log("MAIN_UI_REFRESH", "token=" + token + " conversations=" + allConversations.size)
+                    setupConversations(allConversations)
+                }
+                if (config.appRunCount == 1) {
+                    conversations.forEach { conversation ->
+                        val loaded = getMessages(conversation.threadId, includeScheduledMessages = false)
+                        loaded.chunked(30).forEach { batch -> messagesDB.insertMessages(*batch.toTypedArray()) }
+                    }
+                }
+            } catch (e: Exception) {
+                HomaDiagnostics.error("MAIN_REFRESH_FAILED", e)
+            } finally {
+                HomaDiagnostics.log("MAIN_LOAD_END", "token=" + token + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
             }
         }
     }
@@ -553,6 +550,7 @@ class MainActivity : SimpleActivity() {
         }
 
         try {
+            HomaDiagnostics.log("MAIN_SETUP_CONVERSATIONS", "count=" + sortedConversations.size + " cached=" + cached)
             getOrCreateConversationsAdapter().apply {
                 updateConversations(sortedConversations) {
                     if (!cached) {
