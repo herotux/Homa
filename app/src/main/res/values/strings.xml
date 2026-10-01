@@ -141,9 +141,9 @@
     <string name="faq_4_text">You need to enable \"Send group messages as MMS\" in the app settings. This will ensure that group messages are sent as proper MMS, allowing all participants to see each other\'s replies.</string>
     <string name="search">Search</string>
     <string name="search_messages_and_conversations">Search messages and conversations…</string>
-    <string name="search_filter_tag">Label: All</string>
-    <string name="search_all_tags">All labels</string>
-    <string name="search_no_tags">No labels yet</string>
+    <string name="search_filter_tag">Tag: All</string>
+    <string name="search_all_tags">All tags</string>
+    <string name="search_no_tags">No tags yet</string>
     <string name="search_no_results">No results found</string>
-    <string name="search_type_at_least_two_characters">Type at least 2 characters or choose a label</string>
+    <string name="search_type_at_least_two_characters">Type at least 2 characters or choose a tag</string>
 </resources>
