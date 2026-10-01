@@ -11,8 +11,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { setUrl("https://artifactory-external.vkpartner.ru/artifactory/maven") }
-        maven { setUrl("https://www.jitpack.io") }
         mavenLocal()
+        maven { setUrl("https://www.jitpack.io") }
     }
 }
 include(":app")
