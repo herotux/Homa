@@ -1,7 +1,9 @@
 package com.goodwy.smsmessenger.helpers
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
+import androidx.core.content.FileProvider
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -20,7 +22,10 @@ object HomaDiagnostics {
         if (initialized) return
         synchronized(lock) {
             if (initialized) return
-            logFile = File(context.applicationContext.filesDir, "homa_diagnostics.log")
+            val app = context.applicationContext
+            val logDir = app.getExternalFilesDir("logs") ?: app.filesDir
+            if (!logDir.exists()) logDir.mkdirs()
+            logFile = File(logDir, "homa_diagnostics.log")
             initialized = true
             log("APP_START", "pid=" + android.os.Process.myPid() + " version=" + context.packageManager.getPackageInfo(context.packageName, 0).versionName)
         }
@@ -47,7 +52,7 @@ object HomaDiagnostics {
 
     fun error(event: String, error: Throwable) {
         Log.e(TAG, event + ": " + error.message, error)
-        log(event, error.javaClass.simpleName + ": " + error.message)
+        log(event, error.javaClass.name + ": " + error.message + "\n" + Log.getStackTraceString(error))
     }
 
     fun <T> timed(event: String, block: () -> T): T {
@@ -67,6 +72,18 @@ object HomaDiagnostics {
     fun getLogFile(context: Context): File {
         if (!initialized) init(context)
         return logFile
+    }
+
+    fun shareLog(context: Context) {
+        val file = getLogFile(context)
+        if (!file.exists()) return
+        val uri = FileProvider.getUriForFile(context, context.packageName + ".provider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Homa diagnostics"))
     }
 
     private fun timestamp() = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
