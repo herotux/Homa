@@ -766,7 +766,23 @@ class MainActivity : SimpleActivity() {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun refreshConversations(@Suppress("unused") event: Events.RefreshConversations) {
-        initMessenger()
+        refreshConversationsFromCache()
+    }
+
+    private fun refreshConversationsFromCache() {
+        val token = ++conversationLoadToken
+        ensureBackgroundThread {
+            try {
+                val conversations = conversationsDB.getNonArchived()
+                    .toMutableList() as ArrayList<Conversation>
+                runOnUiThread {
+                    if (token != conversationLoadToken || isFinishing || isDestroyed) return@runOnUiThread
+                    setupConversations(conversations)
+                }
+            } catch (e: Exception) {
+                HomaDiagnostics.error("MAIN_CACHE_REFRESH_FAILED", e)
+            }
+        }
     }
 
     private fun checkWhatsNewDialog() {

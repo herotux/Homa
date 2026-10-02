@@ -1769,6 +1769,19 @@ class ThreadActivity : SimpleActivity() {
             }
         }
         messagesDB.insertOrUpdate(message)
+
+        conversationsDB.getConversationWithThreadId(message.threadId)?.let { conversation ->
+            conversationsDB.insertOrUpdate(
+                conversation.copy(
+                    snippet = message.body,
+                    date = message.date,
+                    read = true,
+                    unreadCount = 0
+                )
+            )
+        }
+        EventBus.getDefault().post(Events.RefreshConversations())
+
         if (shouldUnarchive()) {
             updateConversationArchivedStatus(message.threadId, false)
             refreshConversations()
