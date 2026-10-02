@@ -149,4 +149,5 @@
     <string name="search_filter_label">Label: All</string>
     <string name="search_all_labels">All labels</string>
     <string name="search_no_labels">No labels yet</string>
+    <string name="share_diagnostics">Share diagnostics log</string>
 </resources>
