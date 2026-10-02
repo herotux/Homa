@@ -68,7 +68,8 @@ class BankCardsActivity : AppCompatActivity() {
             navigationIcon = ContextCompat.getDrawable(this@BankCardsActivity, androidx.appcompat.R.drawable.abc_ic_ab_back_material)
             navigationIcon?.setTint(themeColor(com.google.android.material.R.attr.colorOnSurface))
             setNavigationOnClickListener { finish() }
-            val actionBarSize = obtainStyledAttributes(intArrayOf(android.R.attr.actionBarSize)).use { it.getDimensionPixelSize(0, dp(56)) }\n            layoutParams = ViewGroup.LayoutParams(-1, actionBarSize)\n            minimumHeight = actionBarSize
+            val actionBarSize = obtainStyledAttributes(intArrayOf(android.R.attr.actionBarSize)).use { it.getDimensionPixelSize(0, dp(56)) }\n            layoutParams = ViewGroup.LayoutParams(-1, actionBarSize)
+            minimumHeight = actionBarSize
             menu.add("مرتب‌سازی").apply { setShowAsAction(0) }
             setOnMenuItemClickListener {
                 showSortSheet()
