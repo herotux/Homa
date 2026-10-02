@@ -210,7 +210,7 @@ class BankCardsActivity : AppCompatActivity() {
             text = "مدیریت کارت"
             textSize = 14f
             gravity = Gravity.CENTER
-            setTextColor(themeColor(com.google.android.material.R.attr.colorPrimary))
+            setTextColor(themeColor(androidx.appcompat.R.attr.colorAccent))
             setPadding(0, dp(12), 0, dp(12))
             setOnClickListener { showCardActions(card) }
         })
@@ -250,7 +250,7 @@ class BankCardsActivity : AppCompatActivity() {
                 textSize = 12f
                 typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
-                setTextColor(themeColor(com.google.android.material.R.attr.colorPrimary))
+                setTextColor(themeColor(androidx.appcompat.R.attr.colorAccent))
                 setOnClickListener { copy(copyValue) }
             }, LinearLayout.LayoutParams(dp(52), dp(42)))
         }
@@ -271,7 +271,7 @@ class BankCardsActivity : AppCompatActivity() {
 
     private fun bankCardView(card: BankCard): View {
         val visual = card.visual
-        val accent = visual?.color ?: themeColor(com.google.android.material.R.attr.colorPrimary)
+        val accent = visual?.color ?: themeColor(androidx.appcompat.R.attr.colorAccent)
         return MaterialCardView(this).apply {
             radius = dp(24).toFloat()
             cardElevation = dp(2).toFloat()
@@ -359,7 +359,7 @@ class BankCardsActivity : AppCompatActivity() {
         val cardInput = TextInputEditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
             hint = "6037 9918 1234 5678"
-            text = existing?.let(repo::formatCard)
+            existing?.let { setText(repo.formatCard(it.cardNumber)) }
             textDirection = View.TEXT_DIRECTION_LTR
             gravity = Gravity.CENTER
         }
@@ -371,7 +371,7 @@ class BankCardsActivity : AppCompatActivity() {
 
         val holderInput = TextInputEditText(this).apply {
             hint = "نام صاحب کارت"
-            text = existing?.holderName
+            existing?.holderName?.let { setText(it) }
         }
         root.addView(TextInputLayout(this).apply {
             hint = "نام صاحب کارت (اختیاری)"
@@ -380,7 +380,7 @@ class BankCardsActivity : AppCompatActivity() {
 
         val ibanInput = TextInputEditText(this).apply {
             hint = "IR..."
-            text = existing?.let { if (it.iban.isBlank()) "" else repo.formatIban(it.iban) }
+            existing?.let { if (it.iban.isNotBlank()) setText(repo.formatIban(it.iban)) }
             textDirection = View.TEXT_DIRECTION_LTR
         }
         root.addView(TextInputLayout(this).apply {
@@ -390,7 +390,7 @@ class BankCardsActivity : AppCompatActivity() {
 
         val detected = TextView(this).apply {
             textSize = 13f
-            setTextColor(themeColor(com.google.android.material.R.attr.colorPrimary))
+            setTextColor(themeColor(androidx.appcompat.R.attr.colorAccent))
             setPadding(dp(4), dp(4), dp(4), dp(8))
         }
         root.addView(detected)
