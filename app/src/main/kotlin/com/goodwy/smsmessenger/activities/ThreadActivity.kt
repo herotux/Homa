@@ -356,13 +356,15 @@ class ThreadActivity : SimpleActivity() {
             val started = System.nanoTime()
             messages = try {
                 HomaDiagnostics.timed("THREAD_CACHE_QUERY") {
-                    if (isRecycleBin) {
-                        messagesDB.getRecentThreadMessagesFromRecycleBin(threadId, MESSAGES_LIMIT)
-                    } else if (config.useRecycleBin) {
-                        messagesDB.getRecentNonRecycledThreadMessages(threadId, MESSAGES_LIMIT)
-                    } else {
-                        messagesDB.getRecentThreadMessages(threadId, MESSAGES_LIMIT)
-                    }.let { ArrayList(it) }
+                    ArrayList(
+                        if (isRecycleBin) {
+                            messagesDB.getRecentThreadMessagesFromRecycleBin(threadId, MESSAGES_LIMIT)
+                        } else if (config.useRecycleBin) {
+                            messagesDB.getRecentNonRecycledThreadMessages(threadId, MESSAGES_LIMIT)
+                        } else {
+                            messagesDB.getRecentThreadMessages(threadId, MESSAGES_LIMIT)
+                        }
+                    )
                 }
             } catch (e: Exception) {
                 HomaDiagnostics.error("THREAD_CACHE_QUERY_FAILED", e)
