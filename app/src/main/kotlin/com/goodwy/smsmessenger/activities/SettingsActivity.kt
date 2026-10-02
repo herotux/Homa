@@ -211,6 +211,7 @@ class SettingsActivity : SimpleActivity() {
             val surfaceColor = getSurfaceColor()
             arrayOf(
                 settingsColorCustomizationHolder,
+                settingsFeaturesHolder,
                 settingsGeneralHolder,
                 settingsNotificationsHolder,
                 settingsMessagesHolder,
