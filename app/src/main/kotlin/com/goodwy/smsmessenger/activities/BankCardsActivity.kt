@@ -79,7 +79,7 @@ class BankCardsActivity : AppCompatActivity() {
     private inner class CardAdapter : RecyclerView.Adapter<CardAdapter.Holder>() {
         inner class Holder(val box: LinearLayout) : RecyclerView.ViewHolder(box)
         override fun getItemCount() = cards.size
-        override fun onCreateViewHolder(p: android.view.ViewGroup, t: Int) = Holder(LinearLayout(p.context).apply { setPadding(dp(4)) })
+        override fun onCreateViewHolder(p: android.view.ViewGroup, t: Int) = Holder(LinearLayout(p.context).apply { setPadding(dp(4), dp(4), dp(4), dp(4)) })
         override fun onBindViewHolder(h: Holder, position: Int) {
             h.box.removeAllViews()
             if (position < cards.size) h.box.addView(cardView(cards[position]), LinearLayout.LayoutParams(-1, -1))
