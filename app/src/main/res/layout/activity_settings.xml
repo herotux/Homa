@@ -1299,6 +1299,25 @@
                     </RelativeLayout>
 
                     <RelativeLayout
+                        android:id="@+id/settings_diagnostics_holder"
+                        style="@style/SettingsHolderSwitchStyle">
+
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/settings_diagnostics_label"
+                            style="@style/SettingsTextLabelStyle"
+                            android:layout_centerVertical="true"
+                            android:text="@string/share_diagnostics" />
+
+                        <ImageView
+                            android:id="@+id/settings_diagnostics_chevron"
+                            style="@style/SettingsChevronStyle"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:contentDescription="@string/share_diagnostics" />
+
+                    </RelativeLayout>
+
+                    <RelativeLayout
                         android:id="@+id/settings_import_messages_holder"
                         style="@style/SettingsHolderSwitchStyle">
 
