@@ -51,8 +51,20 @@ object HomaDiagnostics {
     }
 
     fun error(event: String, error: Throwable) {
+        val line = timestamp() + " [" + event + "] " + error.javaClass.name + ": " + error.message + "\n" + Log.getStackTraceString(error)
         Log.e(TAG, event + ": " + error.message, error)
-        log(event, error.javaClass.name + ": " + error.message + "\n" + Log.getStackTraceString(error))
+        if (!initialized) return
+        synchronized(lock) {
+            try {
+                if (logFile.exists() && logFile.length() > MAX_LOG_BYTES) {
+                    val old = logFile.readText()
+                    logFile.writeText(old.takeLast(MAX_LOG_BYTES / 2))
+                }
+                logFile.appendText(line + "\n")
+            } catch (e: Exception) {
+                Log.e(TAG, "fatal log write failed", e)
+            }
+        }
     }
 
     fun <T> timed(event: String, block: () -> T): T {
