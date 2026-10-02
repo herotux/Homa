@@ -212,7 +212,7 @@ class BankCardsActivity : AppCompatActivity() {
 
         private fun save() {
             val c = groups.joinToString("") { repo.normalizeCard(it.text.toString()) }; val i = repo.normalizeIban(iban.text?.toString().orEmpty())
-            if (!repo.validCard(c) || repo.detect(c) == null || !repo.validIban(i)) { Toast.makeText(this@BankCardsActivity, "اطلاعات کارت معتبر نیست", Toast.LENGTH_SHORT).show(); return }
+            if (!repo.validCard(c) || repo.detect(c) == null || (i.isNotBlank() && !repo.validIban(i))) { Toast.makeText(this@BankCardsActivity, "اطلاعات کارت معتبر نیست", Toast.LENGTH_SHORT).show(); return }
             Thread {
                 val result = repo.save(existing, c, holder.text?.toString().orEmpty(), i)
                 runOnUiThread { if (result.isSuccess) { dialog.dismiss(); load() } else Toast.makeText(this@BankCardsActivity, "ذخیره کارت انجام نشد", Toast.LENGTH_SHORT).show() }

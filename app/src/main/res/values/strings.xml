@@ -150,4 +150,6 @@
     <string name="search_all_labels">All labels</string>
     <string name="search_no_labels">No labels yet</string>
     <string name="share_diagnostics">Share diagnostics log</string>
+    <string name="features">Features</string>
+    <string name="bank_cards">Bank cards</string>
 </resources>

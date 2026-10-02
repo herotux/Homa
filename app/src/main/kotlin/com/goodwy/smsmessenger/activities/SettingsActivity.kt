@@ -115,6 +115,8 @@ class SettingsActivity : SimpleActivity() {
         setupColorSimIcons()
         setupSimCardColorList()
 
+        setupBankCards()
+
         setupManageBlockedNumbers()
         setupManageBlockedKeywords()
         setupUseSpeechToText()
@@ -238,6 +240,12 @@ class SettingsActivity : SimpleActivity() {
             ).forEach {
                 it.applyColorFilter(properTextColor)
             }
+        }
+    }
+
+    private fun setupBankCards() = binding.apply {
+        settingsBankCardsHolder.setOnClickListener {
+            startActivity(Intent(this@SettingsActivity, BankCardsActivity::class.java))
         }
     }
 
