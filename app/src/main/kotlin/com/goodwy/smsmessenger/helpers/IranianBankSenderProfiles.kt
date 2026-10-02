@@ -2,8 +2,6 @@ package com.goodwy.smsmessenger.helpers
 
 /** Exact sender profiles observed in real Iranian bank SMS samples. */
 object IranianBankSenderProfiles {
-    private const val TAG = "IranianBankSender"
-
     private val normalizedSenders = mapOf(
         "+989820004747" to IranianBankRegistry.BankId.RESALAT,
         "98500014747" to IranianBankRegistry.BankId.RESALAT,
@@ -50,20 +48,7 @@ object IranianBankSenderProfiles {
         fun find(sender: String): IranianBankRegistry.BankInfo? {
         val normalized = normalize(sender)
         val id = normalizedSenders[normalized]
-        if (isSepahCandidate(sender)) {
-            safeLog("SEPAH_DETECT_START raw=${sender.take(80)} rawLength=${sender.length} normalized=$normalized normalizedLength=${normalized.length}")
-            safeLog("SEPAH_DETECT_PROFILE normalized=$normalized mappedBank=$id")
-        }
-        if (id in tracedBanks) {
-            safeLog("BANK_SENDER_MATCH raw=${sender.take(80)} normalized=$normalized bankId=$id")
-        } else if (id == null && (sender.contains("MELLAT", true) || sender.contains("TEJARAT", true) || sender.contains("SEPAH", true) || sender.contains("MELLI", true) || sender.contains("TOSEE", true) || sender.contains("توسعه") || sender.contains("ملت") || sender.contains("تجارت") || sender.contains("سپه") || sender.contains("ملی"))) {
-            safeLog("BANK_SENDER_MISS raw=${sender.take(80)} normalized=$normalized")
-        }
-        val result = id?.let(IranianBankRegistry::findById)
-        if (id == IranianBankRegistry.BankId.SEPAH || result?.id == IranianBankRegistry.BankId.SEPAH) {
-            safeLog("SEPAH_DETECT_RESULT normalized=$normalized bankId=${result?.id} english=${result?.englishName} logoResource=${result?.logoResourceName}")
-        }
-        return result
+        return id?.let(IranianBankRegistry::findById)
     }
 
     /** Returns true when the sender itself looks like a Sepah sender identifier. */
