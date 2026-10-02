@@ -176,6 +176,7 @@ class SettingsActivity : SimpleActivity() {
 
         setupMessagesExport()
         setupMessagesImport()
+        setupDiagnostics()
 
         setupTipJar()
         setupAbout()
@@ -245,6 +246,12 @@ class SettingsActivity : SimpleActivity() {
             exportMessagesDialog = ExportMessagesDialog(this) { fileName ->
                 saveDocument.launch("$fileName.json")
             }
+        }
+    }
+
+    private fun setupDiagnostics() {
+        binding.settingsDiagnosticsHolder.setOnClickListener {
+            HomaDiagnostics.shareLog(this@SettingsActivity)
         }
     }
 
