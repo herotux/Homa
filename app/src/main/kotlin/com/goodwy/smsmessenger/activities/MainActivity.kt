@@ -58,6 +58,8 @@ class MainActivity : SimpleActivity() {
     private var isSpeechToTextAvailable = false
     private var conversationLoadToken = 0L
     private var scrollListenersAttached = false
+    private var messengerInitialized = false
+    private var providerRefreshInFlight = false
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
@@ -401,6 +403,8 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun initMessenger() {
+        if (messengerInitialized) return
+        messengerInitialized = true
         getCachedConversations()
         binding.noConversationsPlaceholder2.setOnClickListener {
             launchNewConversation()
@@ -441,6 +445,11 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun getNewConversations(cachedConversations: ArrayList<Conversation>, token: Long) {
+        if (providerRefreshInFlight) {
+            HomaDiagnostics.log("MAIN_PROVIDER_REFRESH_SKIPPED", "reason=in_flight token=" + token)
+            return
+        }
+        providerRefreshInFlight = true
         val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
         ensureBackgroundThread {
             val started = System.nanoTime()
@@ -490,6 +499,7 @@ class MainActivity : SimpleActivity() {
             } catch (e: Exception) {
                 HomaDiagnostics.error("MAIN_REFRESH_FAILED", e)
             } finally {
+                providerRefreshInFlight = false
                 HomaDiagnostics.log("MAIN_LOAD_END", "token=" + token + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
             }
         }
