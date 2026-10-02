@@ -64,6 +64,13 @@
             android:theme="@style/SplashTheme" />
 
         <activity
+            android:name=".activities.BankCardsActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="کارت‌های بانکی"
+            android:parentActivityName=".activities.MainActivity" />
+
+        <activity
             android:name=".activities.MainActivity"
             android:configChanges="orientation"
             android:exported="true" />
