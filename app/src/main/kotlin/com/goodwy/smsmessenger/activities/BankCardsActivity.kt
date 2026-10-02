@@ -19,6 +19,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.goodwy.commons.views.MyAppBarLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.RecyclerView
@@ -54,23 +55,28 @@ class BankCardsActivity : AppCompatActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setBackgroundColor(themeColor(com.google.android.material.R.attr.colorSurface))
+            setBackgroundColor(themeColor(android.R.attr.colorBackground))
         }
 
+        val appBar = MyAppBarLayout(this).apply {
+            elevation = 0f
+        }
         val toolbar = MaterialToolbar(this).apply {
             title = "کارت‌های بانکی"
             setTitleTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
-            setBackgroundColor(themeColor(com.google.android.material.R.attr.colorSurface))
+            setBackgroundColor(themeColor(android.R.attr.colorBackground))
             navigationIcon = ContextCompat.getDrawable(this@BankCardsActivity, androidx.appcompat.R.drawable.abc_ic_ab_back_material)
             navigationIcon?.setTint(themeColor(com.google.android.material.R.attr.colorOnSurface))
             setNavigationOnClickListener { finish() }
+            layoutParams = ViewGroup.LayoutParams(-1, resources.getDimensionPixelSize(com.google.android.material.R.dimen.mtrl_toolbar_default_height))
             menu.add("مرتب‌سازی").apply { setShowAsAction(0) }
             setOnMenuItemClickListener {
                 showSortSheet()
                 true
             }
         }
-        root.addView(toolbar, LinearLayout.LayoutParams(-1, dp(64)))
+        appBar.addView(toolbar)
+        root.addView(appBar, LinearLayout.LayoutParams(-1, -2))
 
         val scroll = ScrollView(this).apply { clipToPadding = false; isFillViewport = true }
         content = LinearLayout(this).apply {
@@ -262,7 +268,10 @@ class BankCardsActivity : AppCompatActivity() {
         inner class Holder(val root: LinearLayout) : RecyclerView.ViewHolder(root)
         override fun getItemCount() = cards.size
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            Holder(LinearLayout(parent.context).apply { setPadding(dp(4), dp(4), dp(4), dp(4)) })
+            Holder(LinearLayout(parent.context).apply {
+                layoutParams = RecyclerView.LayoutParams(-1, -1)
+                setPadding(dp(4), dp(4), dp(4), dp(4))
+            })
         override fun onBindViewHolder(holder: Holder, position: Int) {
             holder.root.removeAllViews()
             holder.root.addView(bankCardView(cards[position]), LinearLayout.LayoutParams(-1, -1))
