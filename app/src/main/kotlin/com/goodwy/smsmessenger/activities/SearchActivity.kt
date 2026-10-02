@@ -11,6 +11,7 @@ import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.adapters.SearchResultsAdapter
 import com.goodwy.smsmessenger.databinding.ActivitySearchBinding
 import com.goodwy.smsmessenger.extensions.*
+import com.goodwy.smsmessenger.helpers.HomaDiagnostics
 import com.goodwy.smsmessenger.helpers.SEARCHED_MESSAGE_ID
 import com.goodwy.smsmessenger.helpers.THREAD_ID
 import com.goodwy.smsmessenger.helpers.THREAD_TITLE
@@ -64,7 +65,7 @@ class SearchActivity : SimpleActivity() {
     }
 
     private fun showTagMenu(anchor: View) {
-        ensureBackgroundThread {
+        Thread {
             val tags = try {
                 getMessagesDB().AnnotationLabelsDao().getLabels()
             } catch (_: Exception) {
@@ -96,7 +97,7 @@ class SearchActivity : SimpleActivity() {
                     show()
                 }
             }
-        }
+        }.start()
     }
 
     private fun runSearch() {
@@ -107,7 +108,7 @@ class SearchActivity : SimpleActivity() {
             return
         }
 
-        ensureBackgroundThread {
+        Thread {
             val text = "%$query%"
             val textNoHash = "%${query.removePrefix("#")}%"
             val messages = try {
@@ -123,7 +124,7 @@ class SearchActivity : SimpleActivity() {
             if (query == lastQuery && tagId == selectedTagId) {
                 showResults(messages, conversations, query)
             }
-        }
+        }.start()
     }
 
     private fun showResults(messages: List<Message>, conversations: List<Conversation>, searchedText: String) {

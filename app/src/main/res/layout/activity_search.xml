@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/activity_margin"
             android:layout_marginBottom="@dimen/smaller_margin"
-            android:text="@string/search_filter_label"
+            android:text="@string/search_filter_tag"
             android:textAllCaps="false" />
     </com.google.android.material.appbar.AppBarLayout>
 

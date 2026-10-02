@@ -362,7 +362,7 @@ class ThreadActivity : SimpleActivity() {
                         messagesDB.getRecentNonRecycledThreadMessages(threadId, MESSAGES_LIMIT)
                     } else {
                         messagesDB.getRecentThreadMessages(threadId, MESSAGES_LIMIT)
-                    }.toMutableList() as ArrayList<Message>
+                    }.let { ArrayList(it) }
                 }
             } catch (e: Exception) {
                 HomaDiagnostics.error("THREAD_CACHE_QUERY_FAILED", e)
