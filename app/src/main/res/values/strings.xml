@@ -146,4 +146,7 @@
     <string name="search_no_tags">No tags yet</string>
     <string name="search_no_results">No results found</string>
     <string name="search_type_at_least_two_characters">Type at least 2 characters or choose a tag</string>
+    <string name="search_filter_label">Label: All</string>
+    <string name="search_all_labels">All labels</string>
+    <string name="search_no_labels">No labels yet</string>
 </resources>

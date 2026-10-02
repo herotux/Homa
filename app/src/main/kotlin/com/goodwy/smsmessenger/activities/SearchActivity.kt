@@ -7,6 +7,7 @@ import android.view.Menu
 import android.view.View
 import android.widget.PopupMenu
 import com.goodwy.commons.extensions.*
+import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.adapters.SearchResultsAdapter
 import com.goodwy.smsmessenger.databinding.ActivitySearchBinding
