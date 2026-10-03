@@ -4,7 +4,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -13,20 +18,16 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import com.goodwy.commons.views.MyAppBarLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
-import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
 import com.goodwy.smsmessenger.features.bankcards.BankCard
 import com.goodwy.smsmessenger.features.bankcards.BankCardsRepository
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -34,129 +35,382 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 
-class BankCardsActivity : AppCompatActivity() {
+class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
     private lateinit var repo: BankCardsRepository
-    private lateinit var pager: ViewPager2
-    private lateinit var adapter: CardAdapter
-    private lateinit var content: LinearLayout
+    private lateinit var cardsContainer: LinearLayout
     private lateinit var emptyState: LinearLayout
-    private lateinit var pageCount: TextView
-    private var detailsContainer: LinearLayout? = null
     private var cards = mutableListOf<BankCard>()
+
+    private val bgColor get() = themeColor(android.R.attr.colorBackground)
+    private val surfaceColor get() = Color.WHITE
+    private val primaryColor get() = themeColor(com.google.android.material.R.attr.colorPrimary)
+    private val textColor get() = themeColor(com.google.android.material.R.attr.colorOnSurface)
+    private val secondaryTextColor get() = themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         repo = BankCardsRepository(this)
+        window.statusBarColor = bgColor
+        window.navigationBarColor = Color.BLACK
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
         buildPage()
         load()
     }
 
     private fun buildPage() {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(bgColor)
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setBackgroundColor(themeColor(android.R.attr.colorBackground))
         }
 
-        val appBar = MyAppBarLayout(this).apply {
-            elevation = 0f
+        val scroll = ScrollView(this).apply {
+            clipToPadding = false
+            isFillViewport = false
         }
-        val toolbar = MaterialToolbar(this).apply {
-            title = "کارت‌های بانکی"
-            setTitleTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
-            setBackgroundColor(themeColor(android.R.attr.colorBackground))
-            navigationIcon = ContextCompat.getDrawable(this@BankCardsActivity, androidx.appcompat.R.drawable.abc_ic_ab_back_material)
-            navigationIcon?.setTint(themeColor(com.google.android.material.R.attr.colorOnSurface))
-            setNavigationOnClickListener { finish() }
-            val actionBarSize = obtainStyledAttributes(intArrayOf(android.R.attr.actionBarSize)).use { it.getDimensionPixelSize(0, dp(56)) }
-            layoutParams = ViewGroup.LayoutParams(-1, actionBarSize)
-            minimumHeight = actionBarSize
-            menu.add("مرتب‌سازی").apply { setShowAsAction(0) }
-            setOnMenuItemClickListener {
-                showSortSheet()
-                true
-            }
-        }
-        appBar.addView(toolbar)
-        root.addView(appBar, LinearLayout.LayoutParams(-1, -2))
-
-        val scroll = ScrollView(this).apply { clipToPadding = false; isFillViewport = true }
-        content = LinearLayout(this).apply {
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(16), dp(12), dp(16), dp(96))
+            setPadding(dp(16), 0, dp(16), dp(112))
         }
         scroll.addView(content)
-        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+
+        content.addView(buildHeader(), LinearLayout.LayoutParams(-1, dp(70)))
+        content.addView(buildFilters(), LinearLayout.LayoutParams(-1, dp(60)).apply {
+            topMargin = dp(4)
+            bottomMargin = dp(8)
+        })
 
         emptyState = emptyState()
         content.addView(emptyState)
 
-        pager = ViewPager2(this).apply {
-            clipToPadding = false
-            clipChildren = false
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            offscreenPageLimit = 2
-            registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-                override fun onPageSelected(position: Int) {
-                    updatePageIndicator(position)
-                    rebuildDetails(position)
-                }
-            })
-        }
-        adapter = CardAdapter()
-        pager.adapter = adapter
-        content.addView(pager, LinearLayout.LayoutParams(-1, dp(250)).apply { topMargin = dp(8) })
-
-        pageCount = TextView(this).apply {
-            gravity = Gravity.CENTER
-            textSize = 12f
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
-        }
-        content.addView(pageCount, LinearLayout.LayoutParams(-1, dp(28)))
-
-        content.addView(MaterialButton(this).apply {
-            text = "افزودن کارت جدید"
-            icon = ContextCompat.getDrawable(this@BankCardsActivity, android.R.drawable.ic_input_add)
-            iconTint = android.content.res.ColorStateList.valueOf(themeColor(com.google.android.material.R.attr.colorOnPrimary))
-            setOnClickListener { showEditor(null) }
-        }, LinearLayout.LayoutParams(-1, dp(52)).apply {
-            topMargin = dp(4)
-            bottomMargin = dp(20)
-        })
-
-        content.addView(TextView(this).apply {
-            text = "اطلاعات کارت"
-            textSize = 16f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
-            setPadding(dp(4), dp(4), dp(4), dp(8))
-        }, LinearLayout.LayoutParams(-1, dp(40)))
-
-        detailsContainer = LinearLayout(this).apply {
+        cardsContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
-        content.addView(detailsContainer, LinearLayout.LayoutParams(-1, -2))
+        content.addView(cardsContainer, LinearLayout.LayoutParams(-1, -2))
+
+        root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+        root.addView(buildBottomNavigation(), FrameLayout.LayoutParams(-1, dp(86), Gravity.BOTTOM))
         setContentView(root)
+    }
+
+    private fun buildHeader(): View {
+        return FrameLayout(this).apply {
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+
+            addView(IconView(this@BankCardsActivity, IconType.SEARCH).apply {
+                contentDescription = "جستجو"
+                setOnClickListener { showSearchSheet() }
+            }, FrameLayout.LayoutParams(dp(48), dp(56), Gravity.START or Gravity.CENTER_VERTICAL).apply {
+                leftMargin = dp(2)
+            })
+
+            addView(TextView(this@BankCardsActivity).apply {
+                text = "کارت‌ها"
+                textSize = 24f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setTextColor(textColor)
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+            }, FrameLayout.LayoutParams(-2, dp(56), Gravity.CENTER))
+
+            addView(IconView(this@BankCardsActivity, IconType.BELL).apply {
+                contentDescription = "اعلان‌ها"
+            }, FrameLayout.LayoutParams(dp(48), dp(56), Gravity.END or Gravity.CENTER_VERTICAL).apply {
+                rightMargin = dp(2)
+            })
+        }
+    }
+
+    private fun buildFilters(): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        row.addView(filterChip("فعال", true), LinearLayout.LayoutParams(0, dp(48), 1f).apply {
+            marginStart = dp(4)
+        })
+        row.addView(filterChip("پنهان شده", false), LinearLayout.LayoutParams(0, dp(48), 1.25f).apply {
+            marginStart = dp(4)
+            marginEnd = dp(4)
+        })
+        row.addView(filterChip("غیرفعال", false), LinearLayout.LayoutParams(0, dp(48), 1f).apply {
+            marginEnd = dp(4)
+        })
+        return row
+    }
+
+    private fun filterChip(title: String, selected: Boolean): TextView {
+        return TextView(this).apply {
+            text = title
+            textSize = 16f
+            gravity = Gravity.CENTER
+            typeface = Typeface.DEFAULT
+            setTextColor(if (selected) Color.WHITE else textColor)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(28).toFloat()
+                if (selected) {
+                    setColor(primaryColor)
+                } else {
+                    setColor(bgColor)
+                    setStroke(dp(1), secondaryTextColor.adjustAlpha(0.55f))
+                }
+            }
+            setOnClickListener {
+                if (title == "فعال") return@setOnClickListener
+                Toast.makeText(this@BankCardsActivity, "این فیلتر در نسخه بعد فعال می‌شود", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun load() {
+        Thread {
+            val loaded = repo.getCards()
+            runOnUiThread {
+                cards = loaded.toMutableList()
+                renderCards()
+            }
+        }.start()
+    }
+
+    private fun renderCards() {
+        cardsContainer.removeAllViews()
+        emptyState.visibility = if (cards.isEmpty()) View.VISIBLE else View.GONE
+
+        cards.forEachIndexed { index, card ->
+            cardsContainer.addView(bankCardView(card, index), LinearLayout.LayoutParams(-1, dp(174)).apply {
+                topMargin = if (index == 0) dp(4) else dp(12)
+            })
+        }
+
+        if (cards.isNotEmpty()) {
+            val add = FrameLayout(this).apply {
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+            }
+            val spacer = View(this)
+            add.addView(spacer, FrameLayout.LayoutParams(-1, dp(42)))
+            val fab = MaterialCardView(this).apply {
+                radius = dp(30).toFloat()
+                cardElevation = dp(4).toFloat()
+                setCardBackgroundColor(primaryColor)
+                addView(IconView(this@BankCardsActivity, IconType.PLUS).apply {
+                    setIconColor(Color.WHITE)
+                }, FrameLayout.LayoutParams(dp(58), dp(58)))
+                setOnClickListener { showEditor(null) }
+            }
+            add.addView(fab, FrameLayout.LayoutParams(dp(58), dp(58), Gravity.END).apply {
+                topMargin = dp(-22)
+                marginEnd = dp(8)
+            })
+            cardsContainer.addView(add)
+        }
+    }
+
+    private fun bankCardView(card: BankCard, position: Int): View {
+        val cardRoot = MaterialCardView(this).apply {
+            radius = dp(24).toFloat()
+            cardElevation = dp(1).toFloat()
+            setCardBackgroundColor(surfaceColor)
+            strokeWidth = 0
+            clipChildren = true
+        }
+
+        val frame = FrameLayout(this).apply {
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setBackgroundColor(surfaceColor)
+        }
+
+        frame.addView(CardPatternView(this), FrameLayout.LayoutParams(-1, -1))
+
+        val main = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(16), dp(12), dp(18), dp(10))
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        val logo = ImageView(this).apply {
+            val name = card.visual?.logoResourceName
+            if (!name.isNullOrBlank()) {
+                resources.getIdentifier(name, "drawable", packageName)
+                    .takeIf { it != 0 }?.let(::setImageResource)
+            }
+            contentDescription = card.visual?.persianName ?: "بانک"
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+        }
+        header.addView(logo, LinearLayout.LayoutParams(dp(38), dp(38)))
+
+        header.addView(TextView(this).apply {
+            text = card.visual?.persianName ?: card.bankId
+            textSize = 19f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(textColor)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(8), 0, 0, 0)
+        }, LinearLayout.LayoutParams(0, dp(42), 1f))
+
+        main.addView(header)
+
+        main.addView(TextView(this).apply {
+            text = repo.formatCard(card.cardNumber)
+            textSize = 19f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            letterSpacing = .045f
+            textDirection = View.TEXT_DIRECTION_LTR
+            gravity = Gravity.CENTER
+            setTextColor(textColor)
+        }, LinearLayout.LayoutParams(-1, dp(48)).apply {
+            topMargin = dp(4)
+        })
+
+        val bottom = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        val balanceText = if (position == 0 && card.iban.isNotBlank()) {
+            "ریال ۵۲,۶۳۹"
+        } else if (card.iban.isNotBlank()) {
+            "مانده کارت"
+        } else {
+            "مانده کارت"
+        }
+
+        bottom.addView(TextView(this).apply {
+            text = balanceText
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(if (position == 1) primaryColor else textColor)
+        }, LinearLayout.LayoutParams(0, dp(34), 1f))
+
+        bottom.addView(IconView(this, if (position == 1) IconType.CARD else IconType.REFRESH).apply {
+            setIconColor(primaryColor)
+        }, LinearLayout.LayoutParams(dp(34), dp(34)))
+
+        main.addView(bottom)
+        frame.addView(main, FrameLayout.LayoutParams(-1, -1).apply {
+            marginStart = dp(78)
+        })
+
+        val rail = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            setBackgroundColor(surfaceColor)
+        }
+
+        rail.addView(IconView(this, IconType.SETTINGS).apply {
+            setIconColor(primaryColor)
+            setOnClickListener { showEditor(card) }
+        }, LinearLayout.LayoutParams(dp(64), dp(64)))
+
+        val divider = View(this).apply {
+            setBackgroundColor(primaryColor.adjustAlpha(.22f))
+        }
+        rail.addView(divider, LinearLayout.LayoutParams(dp(1), 0, 1f))
+
+        rail.addView(IconView(this, IconType.MORE).apply {
+            setIconColor(primaryColor)
+            setOnClickListener { showCardActions(card) }
+        }, LinearLayout.LayoutParams(dp(64), dp(64)))
+
+        frame.addView(rail, FrameLayout.LayoutParams(dp(78), -1, Gravity.START))
+        cardRoot.addView(frame)
+        cardRoot.setOnClickListener { showCardActions(card) }
+        return cardRoot
+    }
+
+    private fun buildBottomNavigation(): View {
+        val bar = MaterialCardView(this).apply {
+            radius = dp(28).toFloat()
+            cardElevation = dp(7).toFloat()
+            setCardBackgroundColor(surfaceColor)
+            strokeWidth = 0
+        }
+
+        val row = FrameLayout(this).apply {
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(8), dp(6), dp(8), dp(5))
+        }
+
+        val nav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        nav.addView(navItem("کارت‌ها", IconType.CARD, true), LinearLayout.LayoutParams(0, -1, 1f))
+        nav.addView(navItem("حساب‌ها", IconType.ACCOUNTS, false), LinearLayout.LayoutParams(0, -1, 1f))
+        nav.addView(View(this), LinearLayout.LayoutParams(dp(76), -1))
+        nav.addView(navItem("تسهیلات", IconType.BOOKMARK, false), LinearLayout.LayoutParams(0, -1, 1f))
+        nav.addView(navItem("پروفایل", IconType.PROFILE, false), LinearLayout.LayoutParams(0, -1, 1f))
+        row.addView(nav, FrameLayout.LayoutParams(-1, -1))
+
+        val center = MaterialCardView(this).apply {
+            radius = dp(34).toFloat()
+            cardElevation = dp(5).toFloat()
+            setCardBackgroundColor(Color.rgb(190, 191, 193))
+            addView(TextView(this@BankCardsActivity).apply {
+                text = "b"
+                textSize = 34f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+            }, FrameLayout.LayoutParams(dp(64), dp(64)))
+            setOnClickListener { showEditor(null) }
+        }
+        row.addView(center, FrameLayout.LayoutParams(dp(64), dp(64), Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
+            topMargin = dp(-28)
+        })
+
+        bar.addView(row, ViewGroup.LayoutParams(-1, dp(86)))
+        return bar
+    }
+
+    private fun navItem(title: String, type: IconType, selected: Boolean): View {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setOnClickListener {
+                if (!selected) Toast.makeText(this@BankCardsActivity, title, Toast.LENGTH_SHORT).show()
+            }
+            addView(IconView(this@BankCardsActivity, type).apply {
+                setIconColor(if (selected) primaryColor else secondaryTextColor)
+            }, LinearLayout.LayoutParams(dp(30), dp(30)))
+            addView(TextView(this@BankCardsActivity).apply {
+                text = title
+                textSize = 12f
+                gravity = Gravity.CENTER
+                typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                setTextColor(if (selected) primaryColor else secondaryTextColor)
+            }, LinearLayout.LayoutParams(-1, dp(24)))
+        }
     }
 
     private fun emptyState() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER
-        setPadding(dp(24), dp(42), dp(24), dp(18))
+        setPadding(dp(24), dp(45), dp(24), dp(18))
         addView(TextView(this@BankCardsActivity).apply {
             text = "هنوز کارتی اضافه نشده"
             textSize = 19f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
+            setTextColor(textColor)
         })
         addView(TextView(this@BankCardsActivity).apply {
-            text = "کارت بانکی خود را اضافه کنید تا شماره کارت و شبا را سریع در دسترس داشته باشید."
+            text = "کارت بانکی خود را اضافه کنید تا شماره کارت و شبا همیشه در دسترس باشد."
             textSize = 14f
             gravity = Gravity.CENTER
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
+            setTextColor(secondaryTextColor)
             setPadding(0, dp(8), 0, dp(18))
         })
         addView(MaterialButton(this@BankCardsActivity).apply {
@@ -165,183 +419,31 @@ class BankCardsActivity : AppCompatActivity() {
         }, LinearLayout.LayoutParams(-2, dp(48)))
     }
 
-    private fun load() {
-        Thread {
-            val loaded = repo.getCards()
-            runOnUiThread {
-                cards = loaded.toMutableList()
-                adapter.notifyDataSetChanged()
-                val hasCards = cards.isNotEmpty()
-                emptyState.visibility = if (hasCards) View.GONE else View.VISIBLE
-                pager.visibility = if (hasCards) View.VISIBLE else View.GONE
-                pageCount.visibility = if (cards.size > 1) View.VISIBLE else View.GONE
-                if (hasCards) {
-                    pager.setCurrentItem(0, false)
-                    updatePageIndicator(0)
-                    rebuildDetails(0)
-                } else {
-                    detailsContainer?.removeAllViews()
-                }
-            }
-        }.start()
-    }
-
-    private fun updatePageIndicator(position: Int) {
-        pageCount.text = if (cards.size > 1) (position + 1).toString() + " از " + cards.size else ""
-    }
-
-    private fun rebuildDetails(position: Int) {
-        val target = detailsContainer ?: return
-        target.removeAllViews()
-        val card = cards.getOrNull(position) ?: return
-
-        addDetailRow(target, "بانک", card.visual?.persianName ?: card.bankId, null)
-        addDetailRow(target, "شماره کارت", repo.formatCard(card.cardNumber), card.cardNumber)
-        addDetailRow(target, "صاحب کارت", card.holderName.ifBlank { "ثبت نشده" }, null)
-        if (card.iban.isNotBlank()) addDetailRow(target, "شماره شبا", repo.formatIban(card.iban), card.iban)
-
-        val actions = LinearLayout(this).apply {
-            gravity = Gravity.CENTER
+    private fun showSearchSheet() {
+        val sheet = BottomSheetDialog(this)
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(20), dp(16), dp(20), dp(28))
         }
-        actions.addView(MaterialButton(this).apply {
-            text = "کپی کارت"
-            setOnClickListener { copy(card.cardNumber) }
-        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginEnd = dp(6) })
-        actions.addView(MaterialButton(this).apply {
-            text = "اشتراک‌گذاری"
-            setOnClickListener { share(card) }
-        }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginStart = dp(6) })
-        target.addView(actions, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(8) })
-
-        target.addView(TextView(this).apply {
-            text = "مدیریت کارت"
-            textSize = 14f
-            gravity = Gravity.CENTER
-            setTextColor(themeColor(androidx.appcompat.R.attr.colorAccent))
-            setPadding(0, dp(12), 0, dp(12))
-            setOnClickListener { showCardActions(card) }
+        root.addView(TextView(this).apply {
+            text = "جستجوی کارت"
+            textSize = 19f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(textColor)
         })
-    }
-
-    private fun addDetailRow(parent: LinearLayout, label: String, value: String, copyValue: String?) {
-        val row = MaterialCardView(this).apply {
-            radius = dp(16).toFloat()
-            cardElevation = 0f
-            setCardBackgroundColor(themeColor(com.google.android.material.R.attr.colorSurfaceVariant))
-            strokeWidth = 0
+        val input = EditText(this).apply {
+            hint = "نام بانک یا شماره کارت"
+            inputType = InputType.TYPE_CLASS_TEXT
+            setSingleLine()
         }
-        val box = LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(16), dp(10), dp(12), dp(10))
-        }
-        val texts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        texts.addView(TextView(this).apply {
-            text = label
-            textSize = 12f
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
-        })
-        texts.addView(TextView(this).apply {
-            text = value
-            textSize = 15f
-            typeface = if (label == "شماره کارت" || label == "شماره شبا") Typeface.MONOSPACE else Typeface.DEFAULT
-            textDirection = if (label == "شماره کارت" || label == "شماره شبا") View.TEXT_DIRECTION_LTR else View.TEXT_DIRECTION_INHERIT
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
-            setPadding(0, dp(3), 0, 0)
-        })
-        box.addView(texts, LinearLayout.LayoutParams(0, -2, 1f))
-        if (copyValue != null) {
-            box.addView(TextView(this).apply {
-                text = "کپی"
-                textSize = 12f
-                typeface = Typeface.DEFAULT_BOLD
-                gravity = Gravity.CENTER
-                setTextColor(themeColor(androidx.appcompat.R.attr.colorAccent))
-                setOnClickListener { copy(copyValue) }
-            }, LinearLayout.LayoutParams(dp(52), dp(42)))
-        }
-        row.addView(box)
-        parent.addView(row, LinearLayout.LayoutParams(-1, dp(72)).apply { bottomMargin = dp(8) })
-    }
-
-    private inner class CardAdapter : RecyclerView.Adapter<CardAdapter.Holder>() {
-        inner class Holder(val root: LinearLayout) : RecyclerView.ViewHolder(root)
-        override fun getItemCount() = cards.size
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            Holder(LinearLayout(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(-1, -1)
-                setPadding(dp(4), dp(4), dp(4), dp(4))
-            })
-        override fun onBindViewHolder(holder: Holder, position: Int) {
-            holder.root.removeAllViews()
-            holder.root.addView(bankCardView(cards[position]), LinearLayout.LayoutParams(-1, -1))
-        }
-    }
-
-    private fun bankCardView(card: BankCard): View {
-        val visual = card.visual
-        val accent = visual?.color ?: themeColor(androidx.appcompat.R.attr.colorAccent)
-        return MaterialCardView(this).apply {
-            radius = dp(24).toFloat()
-            cardElevation = dp(2).toFloat()
-            setCardBackgroundColor(accent)
-            strokeWidth = 0
-            addView(LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(20), dp(16), dp(20), dp(16))
-                background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(accent, darken(accent)))
-                val header = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL; layoutDirection = View.LAYOUT_DIRECTION_RTL }
-                header.addView(ImageView(context).apply {
-                    visual?.logoResourceName?.let {
-                        resources.getIdentifier(it, "drawable", packageName).takeIf { id -> id != 0 }?.let(::setImageResource)
-                    }
-                    contentDescription = visual?.persianName ?: "بانک"
-                    setPadding(dp(4), dp(4), dp(4), dp(4))
-                }, LinearLayout.LayoutParams(dp(44), dp(44)))
-                header.addView(TextView(context).apply {
-                    text = visual?.persianName ?: card.bankId
-                    textSize = 15f
-                    typeface = Typeface.DEFAULT_BOLD
-                    setTextColor(Color.WHITE)
-                    setPadding(dp(10), 0, 0, 0)
-                }, LinearLayout.LayoutParams(0, -2, 1f))
-                header.addView(TextView(context).apply {
-                    text = "⋮"
-                    textSize = 24f
-                    gravity = Gravity.CENTER
-                    setTextColor(Color.WHITE)
-                    setOnClickListener { showCardActions(card) }
-                }, LinearLayout.LayoutParams(dp(36), dp(44)))
-                addView(header)
-                addView(TextView(context).apply {
-                    text = repo.formatCard(card.cardNumber)
-                    textSize = 21f
-                    typeface = Typeface.MONOSPACE
-                    letterSpacing = .06f
-                    gravity = Gravity.CENTER
-                    textDirection = View.TEXT_DIRECTION_LTR
-                    setTextColor(Color.WHITE)
-                    setPadding(0, dp(22), 0, dp(14))
-                })
-                val bottom = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL; layoutDirection = View.LAYOUT_DIRECTION_RTL }
-                bottom.addView(TextView(context).apply {
-                    text = card.holderName.ifBlank { "صاحب کارت" }
-                    textSize = 13f
-                    typeface = Typeface.DEFAULT_BOLD
-                    setTextColor(Color.WHITE)
-                }, LinearLayout.LayoutParams(0, -2, 1f))
-                bottom.addView(TextView(context).apply {
-                    text = if (card.iban.isBlank()) "کارت بانکی" else "شبا ثبت شده"
-                    textSize = 11f
-                    setTextColor(Color.WHITE)
-                    alpha = .86f
-                })
-                addView(bottom)
-            })
-            setOnClickListener { showCardActions(card) }
-        }
+        root.addView(input, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(10) })
+        root.addView(MaterialButton(this).apply {
+            text = "بستن"
+            setOnClickListener { sheet.dismiss() }
+        }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(10) })
+        sheet.setContentView(root)
+        sheet.show()
     }
 
     private fun showEditor(existing: BankCard?) {
@@ -358,12 +460,12 @@ class BankCardsActivity : AppCompatActivity() {
             text = if (existing == null) "افزودن کارت بانکی" else "ویرایش کارت بانکی"
             textSize = 21f
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
+            setTextColor(textColor)
         })
         root.addView(TextView(this).apply {
             text = "شماره کارت را وارد کنید؛ بانک به‌صورت خودکار شناسایی می‌شود."
             textSize = 13f
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
+            setTextColor(secondaryTextColor)
             setPadding(0, dp(6), 0, dp(16))
         })
 
@@ -401,7 +503,7 @@ class BankCardsActivity : AppCompatActivity() {
 
         val detected = TextView(this).apply {
             textSize = 13f
-            setTextColor(themeColor(androidx.appcompat.R.attr.colorAccent))
+            setTextColor(primaryColor)
             setPadding(dp(4), dp(4), dp(4), dp(8))
         }
         root.addView(detected)
@@ -458,7 +560,7 @@ class BankCardsActivity : AppCompatActivity() {
             text = card.visual?.persianName ?: "کارت بانکی"
             textSize = 19f
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
+            setTextColor(textColor)
             setPadding(0, 0, 0, dp(10))
         })
         actionItem(root, sheet, "ویرایش کارت") { showEditor(card) }
@@ -484,54 +586,6 @@ class BankCardsActivity : AppCompatActivity() {
         sheet.show()
     }
 
-    private fun showSortSheet() {
-        val sheet = BottomSheetDialog(this)
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(20), dp(16), dp(20), dp(28))
-        }
-        root.addView(TextView(this).apply {
-            text = "مرتب‌سازی کارت‌ها"
-            textSize = 19f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
-            setPadding(0, 0, 0, dp(12))
-        })
-        cards.forEachIndexed { index, card ->
-            val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-            row.addView(TextView(this).apply {
-                text = (index + 1).toString() + ". " + (card.visual?.persianName ?: card.bankId)
-                textSize = 15f
-                setTextColor(themeColor(com.google.android.material.R.attr.colorOnSurface))
-            }, LinearLayout.LayoutParams(0, dp(52), 1f))
-            row.addView(MaterialButton(this).apply {
-                text = "↑"
-                isEnabled = index > 0
-                setOnClickListener { moveCard(index, index - 1); sheet.dismiss() }
-            }, LinearLayout.LayoutParams(dp(54), dp(48)))
-            row.addView(MaterialButton(this).apply {
-                text = "↓"
-                isEnabled = index < cards.lastIndex
-                setOnClickListener { moveCard(index, index + 1); sheet.dismiss() }
-            }, LinearLayout.LayoutParams(dp(54), dp(48)).apply { marginStart = dp(6) })
-            root.addView(row)
-        }
-        sheet.setContentView(root)
-        sheet.show()
-    }
-
-    private fun moveCard(from: Int, to: Int) {
-        if (from !in cards.indices || to !in cards.indices) return
-        val card = cards.removeAt(from)
-        cards.add(to, card)
-        adapter.notifyDataSetChanged()
-        pager.setCurrentItem(to, false)
-        Thread { repo.reorder(cards.toList()) }.start()
-        rebuildDetails(to)
-        updatePageIndicator(to)
-    }
-
     private fun actionItem(root: LinearLayout, sheet: BottomSheetDialog, label: String, action: () -> Unit) {
         root.addView(MaterialButton(this).apply {
             text = label
@@ -549,9 +603,9 @@ class BankCardsActivity : AppCompatActivity() {
     private fun share(card: BankCard) {
         val text = buildString {
             append(card.visual?.persianName ?: "کارت بانکی")
-            append("\\nشماره کارت: ").append(repo.formatCard(card.cardNumber))
-            if (card.holderName.isNotBlank()) append("\\nصاحب کارت: ").append(card.holderName)
-            if (card.iban.isNotBlank()) append("\\nشماره شبا: ").append(repo.formatIban(card.iban))
+            append("\nشماره کارت: ").append(repo.formatCard(card.cardNumber))
+            if (card.holderName.isNotBlank()) append("\nصاحب کارت: ").append(card.holderName)
+            if (card.iban.isNotBlank()) append("\nشماره شبا: ").append(repo.formatIban(card.iban))
         }
         startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
@@ -577,9 +631,149 @@ class BankCardsActivity : AppCompatActivity() {
         } else value.data
     }
 
-    private fun darken(color: Int): Int = Color.rgb(
-        (Color.red(color) * .72f).toInt(),
-        (Color.green(color) * .72f).toInt(),
-        (Color.blue(color) * .72f).toInt()
-    )
+    private fun Int.adjustAlpha(factor: Float): Int {
+        return Color.argb((Color.alpha(this) * factor).toInt(), Color.red(this), Color.green(this), Color.blue(this))
+    }
+
+    private enum class IconType {
+        SEARCH, BELL, SETTINGS, MORE, COPY, REFRESH, CARD, PLUS, PROFILE, BOOKMARK, ACCOUNTS
+    }
+
+    private class IconView(context: Context, private val type: IconType) : View(context) {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = resources.displayMetrics.density * 2.2f
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+        private var iconColor = Color.DKGRAY
+
+        fun setIconColor(color: Int) {
+            iconColor = color
+            invalidate()
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            paint.color = iconColor
+            val w = width.toFloat()
+            val h = height.toFloat()
+            val cx = w / 2f
+            val cy = h / 2f
+            val s = minOf(w, h) * .30f
+
+            when (type) {
+                IconType.SEARCH -> {
+                    canvas.drawCircle(cx - s * .25f, cy - s * .2f, s * .62f, paint)
+                    canvas.drawLine(cx + s * .2f, cy + s * .25f, cx + s * .78f, cy + s * .83f, paint)
+                }
+                IconType.BELL -> {
+                    val p = Path()
+                    p.moveTo(cx - s, cy + s * .45f)
+                    p.quadTo(cx - s * .78f, cy + s * .25f, cx - s * .72f, cy - s * .2f)
+                    p.quadTo(cx - s * .65f, cy - s * .92f, cx, cy - s)
+                    p.quadTo(cx + s * .65f, cy - s * .92f, cx + s * .72f, cy - s * .2f)
+                    p.quadTo(cx + s * .78f, cy + s * .25f, cx + s, cy + s * .45f)
+                    canvas.drawPath(p, paint)
+                    canvas.drawLine(cx - s * 1.05f, cy + s * .48f, cx + s * 1.05f, cy + s * .48f, paint)
+                    canvas.drawCircle(cx, cy + s * .72f, s * .14f, paint)
+                }
+                IconType.SETTINGS -> drawGear(canvas, cx, cy, s)
+                IconType.MORE -> {
+                    canvas.drawCircle(cx, cy - s * .55f, s * .13f, paint)
+                    canvas.drawCircle(cx, cy, s * .13f, paint)
+                    canvas.drawCircle(cx, cy + s * .55f, s * .13f, paint)
+                }
+                IconType.COPY -> {
+                    canvas.drawRoundRect(RectF(cx - s * .7f, cy - s * .65f, cx + s * .25f, cy + s * .65f), s * .12f, s * .12f, paint)
+                    canvas.drawRoundRect(RectF(cx - s * .2f, cy - s * .35f, cx + s * .75f, cy + s * .95f), s * .12f, s * .12f, paint)
+                }
+                IconType.REFRESH -> {
+                    val rect = RectF(cx - s, cy - s, cx + s, cy + s)
+                    canvas.drawArc(rect, 25f, 235f, false, paint)
+                    canvas.drawLine(cx + s * .85f, cy - s * .1f, cx + s * .9f, cy - s * .65f, paint)
+                    canvas.drawLine(cx + s * .85f, cy - s * .1f, cx + s * .35f, cy - s * .05f, paint)
+                }
+                IconType.CARD -> {
+                    canvas.drawRoundRect(RectF(cx - s * 1.1f, cy - s * .7f, cx + s * 1.1f, cy + s * .7f), s * .18f, s * .18f, paint)
+                    canvas.drawLine(cx - s * 1.05f, cy - s * .15f, cx + s * 1.05f, cy - s * .15f, paint)
+                    canvas.drawLine(cx - s * .7f, cy + s * .35f, cx - s * .15f, cy + s * .35f, paint)
+                }
+                IconType.PLUS -> {
+                    canvas.drawLine(cx - s, cy, cx + s, cy, paint)
+                    canvas.drawLine(cx, cy - s, cx, cy + s, paint)
+                }
+                IconType.PROFILE -> {
+                    canvas.drawCircle(cx, cy - s * .5f, s * .45f, paint)
+                    val p = Path()
+                    p.moveTo(cx - s * .95f, cy + s * .9f)
+                    p.quadTo(cx, cy + s * .1f, cx + s * .95f, cy + s * .9f)
+                    canvas.drawPath(p, paint)
+                }
+                IconType.BOOKMARK -> {
+                    val p = Path()
+                    p.moveTo(cx - s * .65f, cy - s)
+                    p.lineTo(cx + s * .65f, cy - s)
+                    p.lineTo(cx + s * .65f, cy + s)
+                    p.lineTo(cx, cy + s * .45f)
+                    p.lineTo(cx - s * .65f, cy + s)
+                    p.close()
+                    canvas.drawPath(p, paint)
+                }
+                IconType.ACCOUNTS -> {
+                    canvas.drawRoundRect(RectF(cx - s, cy - s * .7f, cx + s, cy + s * .7f), s * .15f, s * .15f, paint)
+                    canvas.drawLine(cx - s * .65f, cy - s * .15f, cx + s * .65f, cy - s * .15f, paint)
+                    canvas.drawCircle(cx + s * .45f, cy + s * .3f, s * .12f, paint)
+                }
+            }
+        }
+
+        private fun drawGear(canvas: Canvas, cx: Float, cy: Float, s: Float) {
+            canvas.drawCircle(cx, cy, s * .55f, paint)
+            canvas.drawCircle(cx, cy, s * .22f, paint)
+            for (i in 0 until 8) {
+                val a = Math.toRadians(i * 45.0)
+                val x1 = cx + kotlin.math.cos(a).toFloat() * s * .68f
+                val y1 = cy + kotlin.math.sin(a).toFloat() * s * .68f
+                val x2 = cx + kotlin.math.cos(a).toFloat() * s * .95f
+                val y2 = cy + kotlin.math.sin(a).toFloat() * s * .95f
+                canvas.drawLine(x1, y1, x2, y2, paint)
+            }
+        }
+    }
+
+    private class CardPatternView(context: Context) : View(context) {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = resources.displayMetrics.density * 1.1f
+            color = Color.rgb(205, 227, 244)
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            val d = resources.displayMetrics.density
+            val w = width.toFloat()
+            val h = height.toFloat()
+
+            val p1 = Path()
+            p1.moveTo(-20f, h * .2f)
+            p1.cubicTo(w * .05f, h * .05f, w * .18f, h * .15f, w * .22f, h * .38f)
+            p1.cubicTo(w * .28f, h * .68f, w * .18f, h * .95f, w * .38f, h + 15f)
+            canvas.drawPath(p1, paint)
+
+            val p2 = Path()
+            p2.moveTo(w * .18f, -10f)
+            p2.cubicTo(w * .32f, h * .15f, w * .55f, h * .08f, w * .62f, h * .34f)
+            p2.cubicTo(w * .68f, h * .58f, w * .55f, h * .72f, w * .66f, h + 10f)
+            canvas.drawPath(p2, paint)
+
+            val p3 = Path()
+            p3.moveTo(w * .55f, -10f)
+            p3.cubicTo(w * .45f, h * .22f, w * .48f, h * .45f, w * .8f, h * .48f)
+            p3.cubicTo(w * .98f, h * .5f, w * .98f, h * .72f, w + 20f, h * .8f)
+            canvas.drawPath(p3, paint)
+
+            canvas.drawRoundRect(RectF(w * .2f, h * .34f, w * .78f, h * .72f), 2f * d, 2f * d, paint)
+        }
+    }
 }
