@@ -537,7 +537,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
     }
 
     private enum class IconType {
-        SEARCH, SETTINGS, MORE, PLUS
+        SEARCH, BELL, SETTINGS, MORE, COPY, REFRESH, CARD, PLUS, PROFILE, BOOKMARK, ACCOUNTS
     }
 
     private class IconView(context: Context, private val type: IconType) : View(context) {
