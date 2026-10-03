@@ -43,7 +43,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
 
     private val bgColor get() = themeColor(android.R.attr.colorBackground)
     private val surfaceColor get() = Color.WHITE
-    private val primaryColor get() = themeColor(com.google.android.material.R.attr.colorPrimary)
+    private val primaryColor get() = themeColor(android.R.attr.colorAccent)
     private val textColor get() = themeColor(com.google.android.material.R.attr.colorOnSurface)
     private val secondaryTextColor get() = themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
 
