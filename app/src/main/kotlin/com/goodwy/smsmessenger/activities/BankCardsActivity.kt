@@ -70,7 +70,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(16), 0, dp(16), dp(112))
+            setPadding(dp(16), 0, dp(16), dp(24))
         }
         scroll.addView(content)
 
@@ -90,7 +90,6 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
         content.addView(cardsContainer, LinearLayout.LayoutParams(-1, -2))
 
         root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
-        root.addView(buildBottomNavigation(), FrameLayout.LayoutParams(-1, dp(86), Gravity.BOTTOM))
         setContentView(root)
     }
 
@@ -114,11 +113,6 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
             }, FrameLayout.LayoutParams(-2, dp(56), Gravity.CENTER))
 
-            addView(IconView(this@BankCardsActivity, IconType.BELL).apply {
-                contentDescription = "اعلان‌ها"
-            }, FrameLayout.LayoutParams(dp(48), dp(56), Gravity.END or Gravity.CENTER_VERTICAL).apply {
-                rightMargin = dp(2)
-            })
         }
     }
 
@@ -180,7 +174,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
         emptyState.visibility = if (cards.isEmpty()) View.VISIBLE else View.GONE
 
         cards.forEachIndexed { index, card ->
-            cardsContainer.addView(bankCardView(card, index), LinearLayout.LayoutParams(-1, dp(174)).apply {
+            cardsContainer.addView(bankCardView(card), LinearLayout.LayoutParams(-1, dp(145)).apply {
                 topMargin = if (index == 0) dp(4) else dp(12)
             })
         }
@@ -208,7 +202,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
     }
 
-    private fun bankCardView(card: BankCard, position: Int): View {
+    private fun bankCardView(card: BankCard): View {
         val cardRoot = MaterialCardView(this).apply {
             radius = dp(24).toFloat()
             cardElevation = dp(1).toFloat()
@@ -270,32 +264,6 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
             topMargin = dp(4)
         })
 
-        val bottom = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-
-        val balanceText = if (position == 0 && card.iban.isNotBlank()) {
-            "ریال ۵۲,۶۳۹"
-        } else if (card.iban.isNotBlank()) {
-            "مانده کارت"
-        } else {
-            "مانده کارت"
-        }
-
-        bottom.addView(TextView(this).apply {
-            text = balanceText
-            textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(if (position == 1) primaryColor else textColor)
-        }, LinearLayout.LayoutParams(0, dp(34), 1f))
-
-        bottom.addView(IconView(this, if (position == 1) IconType.CARD else IconType.REFRESH).apply {
-            setIconColor(primaryColor)
-        }, LinearLayout.LayoutParams(dp(34), dp(34)))
-
-        main.addView(bottom)
         frame.addView(main, FrameLayout.LayoutParams(-1, -1).apply {
             marginStart = dp(78)
         })
@@ -326,73 +294,6 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
         cardRoot.addView(frame)
         cardRoot.setOnClickListener { showCardActions(card) }
         return cardRoot
-    }
-
-    private fun buildBottomNavigation(): View {
-        val bar = MaterialCardView(this).apply {
-            radius = dp(28).toFloat()
-            cardElevation = dp(7).toFloat()
-            setCardBackgroundColor(surfaceColor)
-            strokeWidth = 0
-        }
-
-        val row = FrameLayout(this).apply {
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(8), dp(6), dp(8), dp(5))
-        }
-
-        val nav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-
-        nav.addView(navItem("کارت‌ها", IconType.CARD, true), LinearLayout.LayoutParams(0, -1, 1f))
-        nav.addView(navItem("حساب‌ها", IconType.ACCOUNTS, false), LinearLayout.LayoutParams(0, -1, 1f))
-        nav.addView(View(this), LinearLayout.LayoutParams(dp(76), -1))
-        nav.addView(navItem("تسهیلات", IconType.BOOKMARK, false), LinearLayout.LayoutParams(0, -1, 1f))
-        nav.addView(navItem("پروفایل", IconType.PROFILE, false), LinearLayout.LayoutParams(0, -1, 1f))
-        row.addView(nav, FrameLayout.LayoutParams(-1, -1))
-
-        val center = MaterialCardView(this).apply {
-            radius = dp(34).toFloat()
-            cardElevation = dp(5).toFloat()
-            setCardBackgroundColor(Color.rgb(190, 191, 193))
-            addView(TextView(this@BankCardsActivity).apply {
-                text = "b"
-                textSize = 34f
-                typeface = Typeface.DEFAULT_BOLD
-                gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
-            }, FrameLayout.LayoutParams(dp(64), dp(64)))
-            setOnClickListener { showEditor(null) }
-        }
-        row.addView(center, FrameLayout.LayoutParams(dp(64), dp(64), Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
-            topMargin = dp(-28)
-        })
-
-        bar.addView(row, ViewGroup.LayoutParams(-1, dp(86)))
-        return bar
-    }
-
-    private fun navItem(title: String, type: IconType, selected: Boolean): View {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setOnClickListener {
-                if (!selected) Toast.makeText(this@BankCardsActivity, title, Toast.LENGTH_SHORT).show()
-            }
-            addView(IconView(this@BankCardsActivity, type).apply {
-                setIconColor(if (selected) primaryColor else secondaryTextColor)
-            }, LinearLayout.LayoutParams(dp(30), dp(30)))
-            addView(TextView(this@BankCardsActivity).apply {
-                text = title
-                textSize = 12f
-                gravity = Gravity.CENTER
-                typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-                setTextColor(if (selected) primaryColor else secondaryTextColor)
-            }, LinearLayout.LayoutParams(-1, dp(24)))
-        }
     }
 
     private fun emptyState() = LinearLayout(this).apply {
@@ -636,7 +537,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
     }
 
     private enum class IconType {
-        SEARCH, BELL, SETTINGS, MORE, COPY, REFRESH, CARD, PLUS, PROFILE, BOOKMARK, ACCOUNTS
+        SEARCH, SETTINGS, MORE, PLUS
     }
 
     private class IconView(context: Context, private val type: IconType) : View(context) {
