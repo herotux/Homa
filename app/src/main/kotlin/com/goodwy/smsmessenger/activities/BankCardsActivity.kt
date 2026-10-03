@@ -40,11 +40,11 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
     private lateinit var emptyState: LinearLayout
     private var cards = mutableListOf<BankCard>()
 
-    private val bgColor get() = themeColor(android.R.attr.colorBackground)
+    private val bgColor = Color.rgb(246, 247, 252)
     private val surfaceColor get() = Color.WHITE
-    private val primaryColor get() = themeColor(android.R.attr.colorAccent)
-    private val textColor get() = themeColor(com.google.android.material.R.attr.colorOnSurface)
-    private val secondaryTextColor get() = themeColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
+    private val primaryColor = Color.rgb(33, 150, 243)
+    private val textColor = Color.rgb(35, 35, 38)
+    private val secondaryTextColor = Color.rgb(105, 106, 112)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -264,7 +264,8 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
         })
 
         frame.addView(main, FrameLayout.LayoutParams(-1, -1).apply {
-            marginStart = dp(78)
+            leftMargin = dp(72)
+            rightMargin = 0
         })
 
         val rail = LinearLayout(this).apply {
@@ -289,7 +290,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
             setOnClickListener { showCardActions(card) }
         }, LinearLayout.LayoutParams(dp(64), dp(64)))
 
-        frame.addView(rail, FrameLayout.LayoutParams(dp(78), -1, Gravity.START))
+        frame.addView(rail, FrameLayout.LayoutParams(dp(72), -1, Gravity.LEFT))
         cardRoot.addView(frame)
         cardRoot.setOnClickListener { showCardActions(card) }
         return cardRoot
@@ -536,7 +537,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
     }
 
     private enum class IconType {
-        SEARCH, SETTINGS, MORE, CARD, PLUS, PROFILE, BOOKMARK, ACCOUNTS
+        SEARCH, SETTINGS, MORE, COPY, CARD, PLUS, PROFILE, BOOKMARK, ACCOUNTS
     }
 
     private class IconView(context: Context, private val type: IconType) : View(context) {
@@ -568,6 +569,10 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
                     canvas.drawLine(cx + s * .2f, cy + s * .25f, cx + s * .78f, cy + s * .83f, paint)
                 }
                 IconType.SETTINGS -> drawGear(canvas, cx, cy, s)
+                IconType.COPY -> {
+                    canvas.drawRoundRect(RectF(cx - s * .62f, cy - s * .72f, cx + s * .25f, cy + s * .68f), s * .12f, s * .12f, paint)
+                    canvas.drawRoundRect(RectF(cx - s * .18f, cy - s * .35f, cx + s * .72f, cy + s * .98f), s * .12f, s * .12f, paint)
+                }
                 IconType.MORE -> {
                     canvas.drawCircle(cx, cy - s * .55f, s * .13f, paint)
                     canvas.drawCircle(cx, cy, s * .13f, paint)
