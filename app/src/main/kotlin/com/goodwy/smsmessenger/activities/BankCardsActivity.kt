@@ -4,7 +4,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -537,7 +536,7 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
     }
 
     private enum class IconType {
-        SEARCH, BELL, SETTINGS, MORE, COPY, REFRESH, CARD, PLUS, PROFILE, BOOKMARK, ACCOUNTS
+        SEARCH, SETTINGS, MORE, CARD, PLUS, PROFILE, BOOKMARK, ACCOUNTS
     }
 
     private class IconView(context: Context, private val type: IconType) : View(context) {
@@ -568,32 +567,11 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
                     canvas.drawCircle(cx - s * .25f, cy - s * .2f, s * .62f, paint)
                     canvas.drawLine(cx + s * .2f, cy + s * .25f, cx + s * .78f, cy + s * .83f, paint)
                 }
-                IconType.BELL -> {
-                    val p = Path()
-                    p.moveTo(cx - s, cy + s * .45f)
-                    p.quadTo(cx - s * .78f, cy + s * .25f, cx - s * .72f, cy - s * .2f)
-                    p.quadTo(cx - s * .65f, cy - s * .92f, cx, cy - s)
-                    p.quadTo(cx + s * .65f, cy - s * .92f, cx + s * .72f, cy - s * .2f)
-                    p.quadTo(cx + s * .78f, cy + s * .25f, cx + s, cy + s * .45f)
-                    canvas.drawPath(p, paint)
-                    canvas.drawLine(cx - s * 1.05f, cy + s * .48f, cx + s * 1.05f, cy + s * .48f, paint)
-                    canvas.drawCircle(cx, cy + s * .72f, s * .14f, paint)
-                }
                 IconType.SETTINGS -> drawGear(canvas, cx, cy, s)
                 IconType.MORE -> {
                     canvas.drawCircle(cx, cy - s * .55f, s * .13f, paint)
                     canvas.drawCircle(cx, cy, s * .13f, paint)
                     canvas.drawCircle(cx, cy + s * .55f, s * .13f, paint)
-                }
-                IconType.COPY -> {
-                    canvas.drawRoundRect(RectF(cx - s * .7f, cy - s * .65f, cx + s * .25f, cy + s * .65f), s * .12f, s * .12f, paint)
-                    canvas.drawRoundRect(RectF(cx - s * .2f, cy - s * .35f, cx + s * .75f, cy + s * .95f), s * .12f, s * .12f, paint)
-                }
-                IconType.REFRESH -> {
-                    val rect = RectF(cx - s, cy - s, cx + s, cy + s)
-                    canvas.drawArc(rect, 25f, 235f, false, paint)
-                    canvas.drawLine(cx + s * .85f, cy - s * .1f, cx + s * .9f, cy - s * .65f, paint)
-                    canvas.drawLine(cx + s * .85f, cy - s * .1f, cx + s * .35f, cy - s * .05f, paint)
                 }
                 IconType.CARD -> {
                     canvas.drawRoundRect(RectF(cx - s * 1.1f, cy - s * .7f, cx + s * 1.1f, cy + s * .7f), s * .18f, s * .18f, paint)
