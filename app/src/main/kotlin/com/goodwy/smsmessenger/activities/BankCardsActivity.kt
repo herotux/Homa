@@ -179,25 +179,24 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
 
         if (cards.isNotEmpty()) {
-            val add = FrameLayout(this).apply {
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
+            val pageRoot = ((cardsContainer.parent as? View)?.parent as? View)?.parent as? FrameLayout
+            pageRoot?.findViewWithTag<View>("bank_cards_fab")?.let(pageRoot::removeView)
+            pageRoot?.let { root ->
+                val fab = MaterialCardView(this).apply {
+                    tag = "bank_cards_fab"
+                    radius = dp(30).toFloat()
+                    cardElevation = dp(5).toFloat()
+                    setCardBackgroundColor(primaryColor)
+                    addView(IconView(this@BankCardsActivity, IconType.PLUS).apply {
+                        setIconColor(Color.WHITE)
+                    }, FrameLayout.LayoutParams(dp(58), dp(58)))
+                    setOnClickListener { showEditor(null) }
+                }
+                root.addView(fab, FrameLayout.LayoutParams(dp(58), dp(58), Gravity.BOTTOM or Gravity.END).apply {
+                    bottomMargin = dp(28)
+                    marginEnd = dp(24)
+                })
             }
-            val spacer = View(this)
-            add.addView(spacer, FrameLayout.LayoutParams(-1, dp(42)))
-            val fab = MaterialCardView(this).apply {
-                radius = dp(30).toFloat()
-                cardElevation = dp(4).toFloat()
-                setCardBackgroundColor(primaryColor)
-                addView(IconView(this@BankCardsActivity, IconType.PLUS).apply {
-                    setIconColor(Color.WHITE)
-                }, FrameLayout.LayoutParams(dp(58), dp(58)))
-                setOnClickListener { showEditor(null) }
-            }
-            add.addView(fab, FrameLayout.LayoutParams(dp(58), dp(58), Gravity.END).apply {
-                topMargin = dp(-22)
-                marginEnd = dp(8)
-            })
-            cardsContainer.addView(add)
         }
     }
 
@@ -251,7 +250,10 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         main.addView(header)
 
-        main.addView(TextView(this).apply {
+        val numberRow = FrameLayout(this).apply {
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+        }
+        numberRow.addView(TextView(this@BankCardsActivity).apply {
             text = repo.formatCard(card.cardNumber)
             textSize = 19f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -259,7 +261,12 @@ class BankCardsActivity : androidx.appcompat.app.AppCompatActivity() {
             textDirection = View.TEXT_DIRECTION_LTR
             gravity = Gravity.CENTER
             setTextColor(textColor)
-        }, LinearLayout.LayoutParams(-1, dp(48)).apply {
+        }, FrameLayout.LayoutParams(-1, dp(48)))
+        numberRow.addView(IconView(this, IconType.COPY).apply {
+            setIconColor(primaryColor)
+            setOnClickListener { copy(card.cardNumber) }
+        }, FrameLayout.LayoutParams(dp(42), dp(48), Gravity.END))
+        main.addView(numberRow, LinearLayout.LayoutParams(-1, dp(48)).apply {
             topMargin = dp(4)
         })
 
