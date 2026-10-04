@@ -329,7 +329,7 @@ class ConversationDetailsActivity : SimpleActivity() {
                 conversationNumberContainer.setOnClickListener {
                     copyToClipboard(address)
                 }
-                conversationNumber.text = address
+                conversationNumber.setPhoneNumberText(address)
                 conversationNumber.setTextColor(primaryColor)
 
                 getContactFromAddress(address) { simpleContact ->
