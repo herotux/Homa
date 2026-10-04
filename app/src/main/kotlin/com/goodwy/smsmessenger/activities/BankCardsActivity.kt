@@ -10,14 +10,14 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
-import android.widget.EditText
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -33,48 +33,46 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 
 /**
- * Homa Bank Cards screen.
- *
- * Uses the same Material/theme colors as the rest of the app.
- * No custom icon drawing, no custom navigation bar color, and no balance/bottom navigation.
+ * Homa Bank Cards — a clean, native screen using the same visual language as Settings.
  */
 class BankCardsActivity : AppCompatActivity() {
     private lateinit var repo: BankCardsRepository
+    private lateinit var root: FrameLayout
+    private lateinit var content: LinearLayout
     private lateinit var cardsContainer: LinearLayout
     private lateinit var emptyState: LinearLayout
-    private lateinit var root: FrameLayout
+    private lateinit var searchInput: TextInputEditText
+    private lateinit var searchHolder: View
+    private lateinit var countText: TextView
     private var cards = mutableListOf<BankCard>()
 
-    private val backgroundColor: Int
-        get() = themeColor(com.google.android.material.R.attr.colorSurface)
-
-    private val surfaceColor: Int
-        get() = themeColor(com.google.android.material.R.attr.colorSurface)
-
-    private val primaryColor: Int
-        get() = themeColor(androidx.appcompat.R.attr.colorPrimary)
-
-    private val textColor: Int
-        get() = themeColor(android.R.attr.textColorPrimary)
-
-    private val secondaryTextColor: Int
-        get() = themeColor(android.R.attr.textColorSecondary)
+    private val backgroundColor get() = themeColor(com.google.android.material.R.attr.colorSurface)
+    private val surfaceColor get() = themeColor(com.google.android.material.R.attr.colorSurface)
+    private val primaryColor get() = themeColor(androidx.appcompat.R.attr.colorPrimary)
+    private val textColor get() = themeColor(android.R.attr.textColorPrimary)
+    private val secondaryTextColor get() = themeColor(android.R.attr.textColorSecondary)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         repo = BankCardsRepository(this)
-
-        // Let the theme own system-bar colors. Content receives the insets instead of
-        // painting a separate status/navigation-bar background.
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        hideNavigationBar()
+        buildPage()
+        load()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideNavigationBar()
+    }
+
+    private fun hideNavigationBar() {
+        @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility =
             View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-
-        buildPage()
-        load()
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
     }
 
     private fun buildPage() {
@@ -89,26 +87,19 @@ class BankCardsActivity : AppCompatActivity() {
             overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
         }
 
-        val content = LinearLayout(this).apply {
+        content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(16), 0, dp(16), dp(32))
+            setPadding(dp(16), 0, dp(16), dp(28))
         }
 
-        content.addView(
-            buildHeader(),
-            LinearLayout.LayoutParams(-1, dp(88))
-        )
-
-        content.addView(
-            buildFilters(),
-            LinearLayout.LayoutParams(-1, dp(52)).apply {
-                bottomMargin = dp(12)
-            }
-        )
-
-        emptyState = emptyState()
-        content.addView(emptyState)
+        content.addView(buildHeader(), LinearLayout.LayoutParams(-1, dp(76)))
+        searchHolder = buildSearch()
+        content.addView(searchHolder, LinearLayout.LayoutParams(-1, dp(68)).apply { topMargin = dp(2) })
+        content.addView(buildOverview(), LinearLayout.LayoutParams(-1, dp(68)).apply {
+            topMargin = dp(8)
+            bottomMargin = dp(12)
+        })
 
         cardsContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -116,69 +107,127 @@ class BankCardsActivity : AppCompatActivity() {
         }
         content.addView(cardsContainer, LinearLayout.LayoutParams(-1, -2))
 
-        scroll.addView(content)
+        emptyState = buildEmptyState()
+        content.addView(emptyState)
+
+        scroll.addView(content, ViewGroup.LayoutParams(-1, -2))
         root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
 
-        // Apply only the system insets needed by the screen. The header gets the top
-        // inset, and the scrolling content gets the bottom inset so the last card/FAB
-        // never sits behind the navigation area.
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             content.updatePadding(
                 left = dp(16),
-                top = bars.top,
+                top = bars.top + dp(2),
                 right = dp(16),
-                bottom = dp(32) + bars.bottom
+                bottom = dp(28) + bars.bottom
             )
             insets
         }
         ViewCompat.requestApplyInsets(root)
     }
 
-    private fun buildHeader(): View {
-        return FrameLayout(this).apply {
+    private fun buildHeader(): View = FrameLayout(this).apply {
+        layoutDirection = View.LAYOUT_DIRECTION_RTL
+
+        addView(iconButton(R.drawable.ic_homa_back, "بازگشت", textColor).apply {
+            rotation = 180f
+            setOnClickListener { finish() }
+        }, FrameLayout.LayoutParams(dp(48), dp(56), Gravity.END or Gravity.BOTTOM))
+
+        addView(TextView(this@BankCardsActivity).apply {
+            text = "کارت‌های بانکی"
+            textSize = 21f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(textColor)
+        }, FrameLayout.LayoutParams(-2, dp(56), Gravity.CENTER or Gravity.BOTTOM))
+
+        val actions = LinearLayout(this@BankCardsActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_LTR
+        }
+        actions.addView(iconButton(R.drawable.ic_homa_search, "جستجوی کارت", textColor).apply {
+            setOnClickListener {
+                searchHolder.visibility = if (searchHolder.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+                if (searchHolder.visibility == View.VISIBLE) searchInput.requestFocus() else searchInput.setText("")
+            }
+        }, LinearLayout.LayoutParams(dp(48), dp(56)))
+        actions.addView(iconButton(R.drawable.ic_homa_add, "افزودن کارت", primaryColor).apply {
+            setOnClickListener { showEditor(null) }
+        }, LinearLayout.LayoutParams(dp(48), dp(56)))
+        addView(actions, FrameLayout.LayoutParams(dp(96), dp(56), Gravity.START or Gravity.BOTTOM))
+    }
 
-            addView(
-                themedIcon(android.R.drawable.ic_menu_search, "جستجوی کارت").apply {
-                    setOnClickListener { showSearchSheet() }
-                },
-                FrameLayout.LayoutParams(dp(48), dp(56), Gravity.START or Gravity.BOTTOM)
-            )
-
-            addView(
-                TextView(this@BankCardsActivity).apply {
-                    text = "کارت‌ها"
-                    textSize = 22f
-                    typeface = Typeface.DEFAULT_BOLD
-                    gravity = Gravity.CENTER
-                    setTextColor(textColor)
-                    layoutDirection = View.LAYOUT_DIRECTION_RTL
-                },
-                FrameLayout.LayoutParams(-2, dp(56), Gravity.CENTER or Gravity.BOTTOM)
-            )
+    private fun buildSearch(): View {
+        searchInput = TextInputEditText(this).apply {
+            hint = "جستجوی بانک یا شماره کارت"
+            inputType = InputType.TYPE_CLASS_TEXT
+            setSingleLine(true)
+            textDirection = View.TEXT_DIRECTION_RTL
+        }
+        return TextInputLayout(this).apply {
+            hint = "جستجو"
+            endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
+            boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+            addView(searchInput)
+            visibility = View.GONE
+            searchInput.addTextChangedListener { renderCards() }
         }
     }
 
-    private fun buildFilters(): View {
-        // Only the filter that is currently implemented is shown. Disabled fake
-        // filters were removed instead of displaying a "coming later" toast.
-        return TextView(this).apply {
-            text = "فعال"
-            textSize = 15f
-            gravity = Gravity.CENTER
-            setTextColor(primaryColor)
-            background = roundedBackground(surfaceColor, primaryColor, dp(1), dp(22))
-            isClickable = false
+    private fun buildOverview(): View {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+            background = roundedBackground(withAlpha(primaryColor, 0.08f), Color.TRANSPARENT, 0, dp(16))
         }
+
+        val icon = MaterialCardView(this).apply {
+            radius = dp(12).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(withAlpha(primaryColor, 0.14f))
+            addView(iconView(R.drawable.ic_homa_card, "کارت بانکی", primaryColor))
+        }
+        box.addView(icon, LinearLayout.LayoutParams(dp(44), dp(44)))
+
+        val labels = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(12), 0, 0, 0)
+        }
+        labels.addView(TextView(this@BankCardsActivity).apply {
+            text = "کارت‌های ذخیره‌شده"
+            textSize = 14f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(textColor)
+        })
+        countText = TextView(this).apply {
+            textSize = 12f
+            setTextColor(secondaryTextColor)
+        }
+        labels.addView(countText)
+        box.addView(labels, LinearLayout.LayoutParams(0, -1, 1f))
+
+        box.addView(MaterialButton(this).apply {
+            text = "افزودن"
+            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
+            iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
+            setTextColor(primaryColor)
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(dp(10), 0, dp(10), 0)
+            setOnClickListener { showEditor(null) }
+        }, LinearLayout.LayoutParams(-2, dp(44)))
+        return box
     }
 
     private fun load() {
         Thread {
-            val loaded = runCatching { repo.getCards() }.getOrElse {
-                emptyList()
-            }
+            val loaded = runCatching { repo.getCards() }.getOrElse { emptyList() }
             runOnUiThread {
                 cards = loaded.toMutableList()
                 renderCards()
@@ -187,252 +236,211 @@ class BankCardsActivity : AppCompatActivity() {
     }
 
     private fun renderCards() {
-        cardsContainer.removeAllViews()
-        emptyState.visibility = if (cards.isEmpty()) View.VISIBLE else View.GONE
-
-        cards.forEachIndexed { index, card ->
-            cardsContainer.addView(
-                bankCardView(card),
-                LinearLayout.LayoutParams(-1, dp(145)).apply {
-                    topMargin = if (index == 0) dp(4) else dp(12)
-                }
-            )
+        val query = searchInput.text?.toString()?.trim().orEmpty()
+        val filtered = if (query.isBlank()) cards else {
+            val normalized = repo.normalizeCard(query)
+            cards.filter { card ->
+                card.visual?.persianName?.contains(query, ignoreCase = true) == true ||
+                    card.visual?.englishName?.contains(query, ignoreCase = true) == true ||
+                    card.cardNumber.contains(normalized) ||
+                    card.holderName.contains(query, ignoreCase = true)
+            }
         }
 
-        root.findViewWithTag<View>("bank_cards_fab")?.let(root::removeView)
+        cardsContainer.removeAllViews()
+        filtered.forEachIndexed { index, card ->
+            cardsContainer.addView(bankCardView(card), LinearLayout.LayoutParams(-1, dp(176)).apply {
+                topMargin = if (index == 0) 0 else dp(12)
+            })
+        }
 
-        if (cards.isNotEmpty()) {
-            val fab = MaterialCardView(this).apply {
-                tag = "bank_cards_fab"
-                radius = dp(28).toFloat()
-                cardElevation = dp(4).toFloat()
-                setCardBackgroundColor(primaryColor)
-                isClickable = true
-                isFocusable = true
-                addView(
-                    themedIcon(android.R.drawable.ic_input_add, "افزودن کارت", Color.WHITE),
-                    FrameLayout.LayoutParams(dp(56), dp(56))
-                )
-                setOnClickListener { showEditor(null) }
-            }
+        emptyState.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+        countText.text = if (query.isBlank()) "${cards.size} کارت ثبت شده" else "${filtered.size} نتیجه از ${cards.size} کارت"
 
-            root.addView(
-                fab,
-                FrameLayout.LayoutParams(dp(56), dp(56), Gravity.BOTTOM or Gravity.END).apply {
-                    marginEnd = dp(20)
-                    bottomMargin = dp(20)
-                }
-            )
-
-            ViewCompat.setOnApplyWindowInsetsListener(fab) { view, insets ->
-                val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                val lp = view.layoutParams as FrameLayout.LayoutParams
-                lp.bottomMargin = dp(20) + bars.bottom
-                view.layoutParams = lp
-                insets
-            }
+        val title = emptyState.findViewWithTag<TextView>("empty_title")
+        val message = emptyState.findViewWithTag<TextView>("empty_message")
+        if (query.isNotBlank() && filtered.isEmpty()) {
+            title?.text = "نتیجه‌ای پیدا نشد"
+            message?.text = "نام بانک، نام صاحب کارت یا بخشی از شماره کارت را جستجو کنید."
+        } else {
+            title?.text = "هنوز کارتی اضافه نشده"
+            message?.text = "کارت‌های بانکی‌تان را یک‌جا و امن در Homa نگه دارید."
         }
     }
 
     private fun bankCardView(card: BankCard): View {
+        val accent = card.visual?.color ?: primaryColor
         val cardRoot = MaterialCardView(this).apply {
             radius = dp(20).toFloat()
-            cardElevation = dp(1).toFloat()
+            cardElevation = 0f
             setCardBackgroundColor(surfaceColor)
             strokeWidth = dp(1)
-            strokeColor = withAlpha(primaryColor, 0.12f)
-            clipChildren = true
+            strokeColor = withAlpha(accent, 0.22f)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { showCardActions(card) }
         }
 
         val frame = FrameLayout(this).apply {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
+            clipChildren = true
         }
+        frame.addView(View(this).apply { setBackgroundColor(accent) },
+            FrameLayout.LayoutParams(dp(5), -1, Gravity.END))
 
         val main = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(16), dp(12), dp(16), dp(10))
+            setPadding(dp(18), dp(14), dp(22), dp(12))
         }
 
-        val header = LinearLayout(this).apply {
+        val top = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
+        val logoHolder = MaterialCardView(this).apply {
+            radius = dp(12).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(withAlpha(accent, 0.10f))
+        }
         val logo = ImageView(this).apply {
             val name = card.visual?.logoResourceName
             if (!name.isNullOrBlank()) {
-                resources.getIdentifier(name, "drawable", packageName)
-                    .takeIf { it != 0 }?.let(::setImageResource)
+                resources.getIdentifier(name, "drawable", packageName).takeIf { it != 0 }?.let(::setImageResource)
+            } else {
+                setImageResource(R.drawable.ic_homa_card)
             }
             contentDescription = card.visual?.persianName ?: "بانک"
             scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(8), dp(8), dp(8), dp(8))
         }
-        header.addView(logo, LinearLayout.LayoutParams(dp(38), dp(38)))
+        logoHolder.addView(logo)
+        top.addView(logoHolder, LinearLayout.LayoutParams(dp(44), dp(44)))
 
-        header.addView(
-            TextView(this).apply {
-                text = card.visual?.persianName ?: card.bankId
-                textSize = 18f
-                typeface = Typeface.DEFAULT_BOLD
-                setTextColor(textColor)
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(8), 0, 0, 0)
-            },
-            LinearLayout.LayoutParams(0, dp(42), 1f)
-        )
-        main.addView(header)
+        val bankInfo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(10), 0, 0, 0)
+        }
+        bankInfo.addView(TextView(this@BankCardsActivity).apply {
+            text = card.visual?.persianName ?: card.bankId
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(textColor)
+        })
+        bankInfo.addView(TextView(this@BankCardsActivity).apply {
+            text = if (card.holderName.isBlank()) "نام صاحب کارت ثبت نشده" else card.holderName
+            textSize = 12f
+            setTextColor(secondaryTextColor)
+        })
+        top.addView(bankInfo, LinearLayout.LayoutParams(0, -2, 1f))
+        top.addView(iconButton(R.drawable.ic_homa_more, "گزینه‌های کارت", secondaryTextColor).apply {
+            setOnClickListener { showCardActions(card) }
+        }, LinearLayout.LayoutParams(dp(44), dp(44)))
+        main.addView(top)
 
-        val numberRow = LinearLayout(this).apply {
+        main.addView(TextView(this).apply {
+            text = maskedCardNumber(card.cardNumber)
+            textSize = 19f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            letterSpacing = .055f
+            textDirection = View.TEXT_DIRECTION_LTR
+            gravity = Gravity.CENTER
+            setTextColor(textColor)
+            setOnClickListener { copy(card.cardNumber) }
+        }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(7) })
+
+        val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_LTR
         }
+        bottom.addView(TextView(this@BankCardsActivity).apply {
+            text = if (card.iban.isBlank()) "شبا ثبت نشده" else "IR ${repo.formatIban(card.iban)}"
+            textSize = 11.5f
+            textDirection = View.TEXT_DIRECTION_LTR
+            setTextColor(secondaryTextColor)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }, LinearLayout.LayoutParams(0, dp(30), 1f))
+        bottom.addView(MaterialButton(this).apply {
+            text = "کپی"
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(dp(10), 0, dp(10), 0)
+            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_copy)
+            iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
+            setTextColor(primaryColor)
+            setOnClickListener { copy(card.cardNumber) }
+        }, LinearLayout.LayoutParams(-2, dp(36)))
+        main.addView(bottom)
 
-        numberRow.addView(
-            TextView(this).apply {
-                text = repo.formatCard(card.cardNumber)
-                textSize = 18f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                letterSpacing = .045f
-                textDirection = View.TEXT_DIRECTION_LTR
-                gravity = Gravity.CENTER
-                setTextColor(textColor)
-            },
-            LinearLayout.LayoutParams(0, dp(48), 1f)
-        )
-
-        numberRow.addView(
-            themedIcon(android.R.drawable.ic_menu_set_as, "کپی شماره کارت", primaryColor).apply {
-                setOnClickListener { copy(card.cardNumber) }
-            },
-            LinearLayout.LayoutParams(dp(42), dp(48))
-        )
-
-        main.addView(numberRow, LinearLayout.LayoutParams(-1, dp(48)).apply {
-            topMargin = dp(4)
-        })
-
-        frame.addView(main, FrameLayout.LayoutParams(-1, -1).apply {
-            leftMargin = dp(64)
-        })
-
-        val rail = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setBackgroundColor(surfaceColor)
-        }
-
-        rail.addView(
-            themedIcon(android.R.drawable.ic_menu_manage, "ویرایش کارت", primaryColor).apply {
-                setOnClickListener { showEditor(card) }
-            },
-            LinearLayout.LayoutParams(dp(64), dp(64))
-        )
-
-        rail.addView(
-            View(this).apply { setBackgroundColor(withAlpha(primaryColor, 0.18f)) },
-            LinearLayout.LayoutParams(dp(1), 0, 1f)
-        )
-
-        rail.addView(
-            themedIcon(android.R.drawable.ic_menu_more, "گزینه‌های کارت", primaryColor).apply {
-                setOnClickListener { showCardActions(card) }
-            },
-            LinearLayout.LayoutParams(dp(64), dp(64))
-        )
-
-        frame.addView(rail, FrameLayout.LayoutParams(dp(64), -1, Gravity.LEFT))
+        frame.addView(main, FrameLayout.LayoutParams(-1, -1).apply { rightMargin = dp(5) })
         cardRoot.addView(frame)
-        cardRoot.setOnClickListener { showCardActions(card) }
         return cardRoot
     }
 
-    private fun emptyState() = LinearLayout(this).apply {
+    private fun buildEmptyState() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER
-        setPadding(dp(24), dp(48), dp(24), dp(18))
+        setPadding(dp(24), dp(38), dp(24), dp(24))
+
+        val icon = MaterialCardView(this@BankCardsActivity).apply {
+            radius = dp(30).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(withAlpha(primaryColor, 0.10f))
+            addView(iconView(R.drawable.ic_homa_card, "کارت بانکی", primaryColor))
+        }
+        addView(icon, LinearLayout.LayoutParams(dp(60), dp(60)))
 
         addView(TextView(this@BankCardsActivity).apply {
+            tag = "empty_title"
             text = "هنوز کارتی اضافه نشده"
-            textSize = 19f
+            textSize = 18f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             setTextColor(textColor)
+            setPadding(0, dp(14), 0, 0)
         })
-
         addView(TextView(this@BankCardsActivity).apply {
-            text = "کارت بانکی خود را اضافه کنید تا شماره کارت و شبا همیشه در دسترس باشد."
-            textSize = 14f
+            tag = "empty_message"
+            text = "کارت‌های بانکی‌تان را یک‌جا و امن در Homa نگه دارید."
+            textSize = 13f
             gravity = Gravity.CENTER
             setTextColor(secondaryTextColor)
-            setPadding(0, dp(8), 0, dp(18))
+            setPadding(0, dp(7), 0, dp(16))
         })
-
         addView(MaterialButton(this@BankCardsActivity).apply {
-            text = "افزودن اولین کارت"
+            text = "افزودن کارت بانکی"
+            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
+            iconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
             setOnClickListener { showEditor(null) }
         }, LinearLayout.LayoutParams(-2, dp(48)))
-    }
-
-    private fun showSearchSheet() {
-        val sheet = BottomSheetDialog(this)
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(20), dp(16), dp(20), dp(28))
-        }
-
-        root.addView(TextView(this).apply {
-            text = "جستجوی کارت"
-            textSize = 19f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(textColor)
-        })
-
-        val input = EditText(this).apply {
-            hint = "نام بانک یا شماره کارت"
-            inputType = InputType.TYPE_CLASS_TEXT
-            setSingleLine()
-        }
-        root.addView(input, LinearLayout.LayoutParams(-1, dp(60)).apply {
-            topMargin = dp(10)
-        })
-
-        root.addView(MaterialButton(this).apply {
-            text = "بستن"
-            setOnClickListener { sheet.dismiss() }
-        }, LinearLayout.LayoutParams(-1, dp(50)).apply {
-            topMargin = dp(10)
-        })
-
-        sheet.setContentView(root)
-        sheet.show()
     }
 
     private fun showEditor(existing: BankCard?) {
         val dialog = BottomSheetDialog(this)
         val scroll = ScrollView(this)
-        val root = LinearLayout(this).apply {
+        val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(20), dp(12), dp(20), dp(28))
+            setPadding(dp(20), dp(10), dp(20), dp(26))
         }
-        scroll.addView(root)
+        scroll.addView(sheet)
 
-        root.addView(TextView(this).apply {
+        sheet.addView(TextView(this).apply {
             text = if (existing == null) "افزودن کارت بانکی" else "ویرایش کارت بانکی"
             textSize = 21f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(textColor)
         })
-
-        root.addView(TextView(this).apply {
+        sheet.addView(TextView(this).apply {
             text = "شماره کارت را وارد کنید؛ بانک به‌صورت خودکار شناسایی می‌شود."
             textSize = 13f
             setTextColor(secondaryTextColor)
-            setPadding(0, dp(6), 0, dp(16))
+            setPadding(0, dp(5), 0, dp(14))
         })
 
         val cardInput = TextInputEditText(this).apply {
@@ -442,60 +450,55 @@ class BankCardsActivity : AppCompatActivity() {
             textDirection = View.TEXT_DIRECTION_LTR
             gravity = Gravity.CENTER
         }
-        root.addView(TextInputLayout(this).apply {
+        sheet.addView(TextInputLayout(this).apply {
             hint = "شماره کارت"
             endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
             addView(cardInput)
-        }, LinearLayout.LayoutParams(-1, dp(72)))
+        }, LinearLayout.LayoutParams(-1, dp(70)))
+
+        val detected = TextView(this).apply {
+            textSize = 12.5f
+            setTextColor(primaryColor)
+            setPadding(dp(4), dp(4), dp(4), dp(6))
+        }
+        sheet.addView(detected)
 
         val holderInput = TextInputEditText(this).apply {
             hint = "نام صاحب کارت"
-            existing?.holderName?.let { setText(it) }
+            existing?.holderName?.let(::setText)
         }
-        root.addView(TextInputLayout(this).apply {
+        sheet.addView(TextInputLayout(this).apply {
             hint = "نام صاحب کارت (اختیاری)"
             addView(holderInput)
-        }, LinearLayout.LayoutParams(-1, dp(72)).apply { topMargin = dp(8) })
+        }, LinearLayout.LayoutParams(-1, dp(70)).apply { topMargin = dp(6) })
 
         val ibanInput = TextInputEditText(this).apply {
             hint = "IR..."
             existing?.let { if (it.iban.isNotBlank()) setText(repo.formatIban(it.iban)) }
             textDirection = View.TEXT_DIRECTION_LTR
         }
-        root.addView(TextInputLayout(this).apply {
+        sheet.addView(TextInputLayout(this).apply {
             hint = "شماره شبا (اختیاری)"
             addView(ibanInput)
-        }, LinearLayout.LayoutParams(-1, dp(72)).apply { topMargin = dp(8) })
-
-        val detected = TextView(this).apply {
-            textSize = 13f
-            setTextColor(primaryColor)
-            setPadding(dp(4), dp(4), dp(4), dp(8))
-        }
-        root.addView(detected)
+        }, LinearLayout.LayoutParams(-1, dp(70)).apply { topMargin = dp(6) })
 
         fun updateDetected() {
             val bank = repo.detect(repo.normalizeCard(cardInput.text?.toString().orEmpty()))
-            detected.text = bank?.let { "بانک شناسایی‌شده: " + it.persianName } ?: ""
+            detected.text = bank?.let { "بانک شناسایی‌شده: ${it.persianName}" } ?: ""
         }
-
-        cardInput.addTextChangedListener {
-            updateDetected()
-        }
+        cardInput.addTextChangedListener { updateDetected() }
         updateDetected()
 
-        root.addView(MaterialButton(this).apply {
-            text = "ذخیره کارت"
+        sheet.addView(MaterialButton(this).apply {
+            text = if (existing == null) "ذخیره کارت" else "ذخیره تغییرات"
             setOnClickListener {
                 val card = repo.normalizeCard(cardInput.text?.toString().orEmpty())
                 val holder = holderInput.text?.toString().orEmpty().trim()
                 val iban = repo.normalizeIban(ibanInput.text?.toString().orEmpty())
-
                 if (card.length != 16 || !repo.validCard(card) || repo.detect(card) == null) {
                     cardInput.error = "شماره کارت معتبر نیست یا بانک شناسایی نشد"
                     return@setOnClickListener
                 }
-
                 if (iban.isNotBlank() && !repo.validIban(iban)) {
                     ibanInput.error = "شماره شبا معتبر نیست"
                     return@setOnClickListener
@@ -519,37 +522,48 @@ class BankCardsActivity : AppCompatActivity() {
                     }
                 }.start()
             }
-        }, LinearLayout.LayoutParams(-1, dp(52)).apply {
-            topMargin = dp(14)
-        })
+        }, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(14) })
 
         dialog.setContentView(scroll)
         dialog.show()
+        applySheetInsets(scroll)
     }
 
     private fun showCardActions(card: BankCard) {
-        val sheet = BottomSheetDialog(this)
-        val root = LinearLayout(this).apply {
+        val dialog = BottomSheetDialog(this)
+        val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(20), dp(16), dp(20), dp(28))
+            setPadding(dp(20), dp(12), dp(20), dp(22))
         }
-
-        root.addView(TextView(this).apply {
+        sheet.addView(TextView(this).apply {
             text = card.visual?.persianName ?: "کارت بانکی"
-            textSize = 19f
+            textSize = 20f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(textColor)
-            setPadding(0, 0, 0, dp(10))
+            setPadding(0, 0, 0, dp(12))
         })
 
-        actionItem(root, sheet, "ویرایش کارت") { showEditor(card) }
-        actionItem(root, sheet, "کپی شماره کارت") { copy(card.cardNumber) }
+        sheet.addView(actionButton("ویرایش کارت", R.drawable.ic_homa_edit) {
+            dialog.dismiss()
+            showEditor(card)
+        })
+        sheet.addView(actionButton("کپی شماره کارت", R.drawable.ic_homa_copy) {
+            dialog.dismiss()
+            copy(card.cardNumber)
+        })
         if (card.iban.isNotBlank()) {
-            actionItem(root, sheet, "کپی شماره شبا") { copy(card.iban) }
+            sheet.addView(actionButton("کپی شماره شبا", R.drawable.ic_homa_copy) {
+                dialog.dismiss()
+                copy(card.iban)
+            })
         }
-        actionItem(root, sheet, "اشتراک‌گذاری") { share(card) }
-        actionItem(root, sheet, "حذف کارت") {
+        sheet.addView(actionButton("اشتراک‌گذاری", R.drawable.ic_homa_share) {
+            dialog.dismiss()
+            share(card)
+        })
+        sheet.addView(actionButton("حذف کارت", R.drawable.ic_homa_more, textColor) {
+            dialog.dismiss()
             MaterialAlertDialogBuilder(this)
                 .setTitle("حذف کارت")
                 .setMessage("این کارت از Homa حذف شود؟")
@@ -559,43 +573,38 @@ class BankCardsActivity : AppCompatActivity() {
                         val result = repo.delete(card)
                         runOnUiThread {
                             if (result.isSuccess) load()
-                            else Toast.makeText(
-                                this@BankCardsActivity,
-                                "حذف کارت انجام نشد",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            else Toast.makeText(this, "حذف کارت انجام نشد", Toast.LENGTH_SHORT).show()
                         }
                     }.start()
                 }
                 .show()
-        }
+        })
 
-        sheet.setContentView(root)
-        sheet.show()
+        dialog.setContentView(sheet)
+        dialog.show()
+        applySheetInsets(sheet)
     }
 
-    private fun actionItem(
-        root: LinearLayout,
-        sheet: BottomSheetDialog,
-        label: String,
-        action: () -> Unit
-    ) {
-        root.addView(MaterialButton(this).apply {
+    private fun actionButton(label: String, iconRes: Int, tint: Int = primaryColor, action: () -> Unit) =
+        MaterialButton(this).apply {
             text = label
             gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            setOnClickListener {
-                sheet.dismiss()
-                action()
-            }
-        }, LinearLayout.LayoutParams(-1, dp(52)).apply {
-            topMargin = dp(6)
-        })
-    }
+            icon = ContextCompat.getDrawable(context, iconRes)
+            iconTint = android.content.res.ColorStateList.valueOf(tint)
+            setTextColor(textColor)
+            minHeight = dp(52)
+            minimumHeight = dp(52)
+            setPadding(dp(12), 0, dp(12), 0)
+            setOnClickListener { action() }
+        }
 
-    private fun copy(value: String) {
-        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
-            .setPrimaryClip(ClipData.newPlainText("Homa", value))
-        Toast.makeText(this, "کپی شد", Toast.LENGTH_SHORT).show()
+    private fun applySheetInsets(view: View) {
+        ViewCompat.setOnApplyWindowInsetsListener(view) { target, insets ->
+            val bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            target.updatePadding(bottom = dp(22) + bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(view)
     }
 
     private fun share(card: BankCard) {
@@ -605,7 +614,6 @@ class BankCardsActivity : AppCompatActivity() {
             if (card.holderName.isNotBlank()) append("\nصاحب کارت: ").append(card.holderName)
             if (card.iban.isNotBlank()) append("\nشماره شبا: ").append(repo.formatIban(card.iban))
         }
-
         startActivity(Intent.createChooser(
             Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -615,8 +623,19 @@ class BankCardsActivity : AppCompatActivity() {
         ))
     }
 
-    private fun themedIcon(resId: Int, description: String, tint: Int = textColor): ImageView {
-        return ImageView(this).apply {
+    private fun copy(value: String) {
+        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+            .setPrimaryClip(ClipData.newPlainText("Homa", value))
+        Toast.makeText(this, "کپی شد", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun maskedCardNumber(value: String): String {
+        val card = repo.normalizeCard(value)
+        return if (card.length == 16) "••••  ••••  ••••  ${card.takeLast(4)}" else repo.formatCard(card)
+    }
+
+    private fun iconButton(resId: Int, description: String, tint: Int): ImageView =
+        ImageView(this).apply {
             setImageResource(resId)
             imageTintList = android.content.res.ColorStateList.valueOf(tint)
             contentDescription = description
@@ -625,32 +644,32 @@ class BankCardsActivity : AppCompatActivity() {
             isClickable = true
             isFocusable = true
         }
-    }
+
+    private fun iconView(resId: Int, description: String, tint: Int): ImageView =
+        ImageView(this).apply {
+            setImageResource(resId)
+            imageTintList = android.content.res.ColorStateList.valueOf(tint)
+            contentDescription = description
+            scaleType = ImageView.ScaleType.CENTER
+            setPadding(dp(9), dp(9), dp(9), dp(9))
+        }
 
     private fun roundedBackground(fill: Int, stroke: Int, strokeWidth: Int, radius: Int) =
         android.graphics.drawable.GradientDrawable().apply {
             setColor(fill)
-            setStroke(strokeWidth, stroke)
+            if (strokeWidth > 0) setStroke(strokeWidth, stroke)
             cornerRadius = radius.toFloat()
         }
 
     private fun withAlpha(color: Int, alpha: Float): Int =
-        Color.argb(
-            (255f * alpha).toInt().coerceIn(0, 255),
-            Color.red(color),
-            Color.green(color),
-            Color.blue(color)
-        )
+        Color.argb((255f * alpha).toInt().coerceIn(0, 255), Color.red(color), Color.green(color), Color.blue(color))
 
     private fun themeColor(attr: Int): Int {
         val value = android.util.TypedValue()
         if (!theme.resolveAttribute(attr, value, true)) return Color.GRAY
         return if (value.resourceId != 0) {
-            runCatching { androidx.core.content.ContextCompat.getColor(this, value.resourceId) }
-                .getOrDefault(value.data)
-        } else {
-            value.data
-        }
+            runCatching { ContextCompat.getColor(this, value.resourceId) }.getOrDefault(value.data)
+        } else value.data
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
