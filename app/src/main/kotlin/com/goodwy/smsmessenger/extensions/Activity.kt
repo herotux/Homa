@@ -265,21 +265,3 @@ fun SimpleActivity.launchAbout() {
     )
 }
 
-fun Activity.newAppRecommendation() {
-    if (resources.getBoolean(com.goodwy.commons.R.bool.is_foss)) {
-        if (!isNewApp()) {
-            if ((0..config.newAppRecommendationDialogCount).random() == 2) {
-                val packageName = "segassem.ywdoog.ved".reversed()
-                NewAppDialog(
-                    activity = this,
-                    packageName = packageName,
-                    title = getString(com.goodwy.strings.R.string.notification_of_new_application),
-                    text = "AlRight Messages",
-                    drawable = AppCompatResources.getDrawable(this, com.goodwy.commons.R.drawable.ic_sms_messenger_new),
-                    showSubtitle = true
-                ) {
-                }
-            }
-        }
-    }
-}
