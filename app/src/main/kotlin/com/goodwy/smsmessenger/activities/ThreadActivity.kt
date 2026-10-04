@@ -973,7 +973,7 @@ class ThreadActivity : SimpleActivity() {
                     senderName.setTextColor(textColor)
                 }
                 senderNumber.beGoneIf(!config.showNumberInTitle || threadTitle == threadSubtitle || participants.size > 1)
-                senderNumber.text = threadSubtitle
+                senderNumber.setPhoneNumberText(threadSubtitle)
                 senderNumber.setTextColor(textColor)
                 arrayOf(
                     senderPhoto,
@@ -995,7 +995,7 @@ class ThreadActivity : SimpleActivity() {
                     senderNameLarge.setTextColor(textColor)
                 }
                 senderNumberLarge.beGoneIf(!config.showNumberInTitle || threadTitle == threadSubtitle || participants.size > 1)
-                senderNumberLarge.text = threadSubtitle
+                senderNumberLarge.setPhoneNumberText(threadSubtitle)
                 senderNumberLarge.setTextColor(textColor)
                 arrayOf(
                     senderPhotoLarge,
