@@ -17,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -214,7 +215,7 @@ class BankCardsActivity : AppCompatActivity() {
 
         box.addView(MaterialButton(this).apply {
             text = "افزودن"
-            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
+            this.icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
             iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
             setTextColor(primaryColor)
             minWidth = 0
@@ -370,7 +371,7 @@ class BankCardsActivity : AppCompatActivity() {
             minWidth = 0
             minimumWidth = 0
             setPadding(dp(10), 0, dp(10), 0)
-            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_copy)
+            this.icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_copy)
             iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
             setTextColor(primaryColor)
             setOnClickListener { copy(card.cardNumber) }
@@ -589,7 +590,7 @@ class BankCardsActivity : AppCompatActivity() {
         MaterialButton(this).apply {
             text = label
             gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            icon = ContextCompat.getDrawable(context, iconRes)
+            this.icon = ContextCompat.getDrawable(context, iconRes)
             iconTint = android.content.res.ColorStateList.valueOf(tint)
             setTextColor(textColor)
             minHeight = dp(52)
