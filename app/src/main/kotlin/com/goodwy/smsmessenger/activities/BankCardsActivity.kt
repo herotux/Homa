@@ -24,6 +24,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.core.widget.addTextChangedListener
+import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.features.bankcards.BankCard
 import com.goodwy.smsmessenger.features.bankcards.BankCardsRepository
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -415,7 +416,7 @@ class BankCardsActivity : AppCompatActivity() {
         })
         addView(MaterialButton(this@BankCardsActivity).apply {
             text = "افزودن کارت بانکی"
-            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
+            this.icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
             iconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
             setOnClickListener { showEditor(null) }
         }, LinearLayout.LayoutParams(-2, dp(48)))
