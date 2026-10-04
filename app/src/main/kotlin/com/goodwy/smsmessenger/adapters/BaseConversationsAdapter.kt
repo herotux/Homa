@@ -43,6 +43,7 @@ import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.activities.SimpleActivity
 import com.goodwy.smsmessenger.databinding.ItemConversationBinding
 import com.goodwy.smsmessenger.extensions.config
+import com.goodwy.smsmessenger.extensions.setPhoneNumberText
 import com.goodwy.smsmessenger.extensions.deleteSmsDraft
 import com.goodwy.smsmessenger.extensions.getAllDrafts
 import com.goodwy.smsmessenger.extensions.setWidth
