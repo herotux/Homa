@@ -969,7 +969,11 @@ class ThreadActivity : SimpleActivity() {
             THREAD_TOP_COMPACT -> topDetailsCompact.apply {
                 senderPhoto.beVisibleIf(config.showContactThumbnails)
                 if (threadTitle.isNotEmpty()) {
-                    senderName.text = threadTitle
+                    if (threadTitle == threadSubtitle || participants.size == 1 && participants.firstOrNull()?.doesHavePhoneNumber(threadTitle) == true) {
+                        senderName.setPhoneNumberText(threadTitle)
+                    } else {
+                        senderName.text = threadTitle
+                    }
                     senderName.setTextColor(textColor)
                 }
                 senderNumber.beGoneIf(!config.showNumberInTitle || threadTitle == threadSubtitle || participants.size > 1)
@@ -991,7 +995,11 @@ class ThreadActivity : SimpleActivity() {
                 topDetailsCompact.root.beGone()
                 senderPhotoLarge.beVisibleIf(config.showContactThumbnails)
                 if (threadTitle.isNotEmpty()) {
-                    senderNameLarge.text = threadTitle
+                    if (threadTitle == threadSubtitle || participants.size == 1 && participants.firstOrNull()?.doesHavePhoneNumber(threadTitle) == true) {
+                        senderNameLarge.setPhoneNumberText(threadTitle)
+                    } else {
+                        senderNameLarge.text = threadTitle
+                    }
                     senderNameLarge.setTextColor(textColor)
                 }
                 senderNumberLarge.beGoneIf(!config.showNumberInTitle || threadTitle == threadSubtitle || participants.size > 1)
