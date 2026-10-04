@@ -12,6 +12,7 @@ import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.smsmessenger.activities.SimpleActivity
 import com.goodwy.smsmessenger.databinding.ItemSearchResultBinding
 import com.goodwy.smsmessenger.extensions.config
+import com.goodwy.smsmessenger.extensions.setPhoneNumberText
 import com.goodwy.smsmessenger.models.SearchResult
 import java.util.*
 
