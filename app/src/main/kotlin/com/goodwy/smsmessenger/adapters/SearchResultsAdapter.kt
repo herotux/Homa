@@ -78,13 +78,21 @@ class SearchResultsAdapter(
             if (searchResults.last() == searchResult || !activity.config.useDividers) divider.beInvisible() else divider.beVisible()
 
             searchResultTitle.apply {
-                text = searchResult.title.highlightTextPart(textToHighlight, properPrimaryColor)
+                if (searchResult.title == searchResult.phoneNumber) {
+                    setPhoneNumberText(searchResult.title.highlightTextPart(textToHighlight, properPrimaryColor))
+                } else {
+                    text = searchResult.title.highlightTextPart(textToHighlight, properPrimaryColor)
+                }
                 setTextColor(textColor)
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 1.2f)
             }
 
             searchResultSnippet.apply {
-                text = searchResult.snippet.highlightTextPart(textToHighlight, properPrimaryColor)
+                if (searchResult.snippet == searchResult.phoneNumber) {
+                    setPhoneNumberText(searchResult.snippet.highlightTextPart(textToHighlight, properPrimaryColor))
+                } else {
+                    text = searchResult.snippet.highlightTextPart(textToHighlight, properPrimaryColor)
+                }
                 setTextColor(textColor)
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 0.9f)
             }
