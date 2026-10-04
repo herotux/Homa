@@ -210,7 +210,11 @@ abstract class BaseConversationsAdapter(
 
             val title = conversation.title
             conversationAddress.apply {
-                text = title
+                if (title == conversation.phoneNumber) {
+                    setPhoneNumberText(title)
+                } else {
+                    text = title
+                }
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 1.2f)
                 isSelected = true
                 val ellipsizeConfig =
