@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.provider.ContactsContract
 import android.view.View
+import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import com.goodwy.commons.activities.BaseSimpleActivity
@@ -265,3 +266,12 @@ fun SimpleActivity.launchAbout() {
     )
 }
 
+
+/**
+ * Phone numbers are LTR even when the surrounding Homa UI is RTL.
+ * Android's bidi algorithm otherwise may move a leading '+' to the visual end.
+ */
+fun TextView.setPhoneNumberText(value: CharSequence?) {
+    textDirection = View.TEXT_DIRECTION_LTR
+    text = value
+}
