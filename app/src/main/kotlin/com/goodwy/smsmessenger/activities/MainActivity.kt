@@ -153,7 +153,6 @@ class MainActivity : SimpleActivity() {
 
         if (config.wasReminderWarningShown) {
             checkErrorDialog()
-            newAppRecommendation()
         }
     }
 
