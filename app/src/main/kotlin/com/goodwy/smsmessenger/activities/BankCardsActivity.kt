@@ -23,6 +23,7 @@ import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import androidx.core.content.ContextCompat
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -303,16 +304,16 @@ class BankCardsActivity : SimpleActivity() {
         }
         val logo = ImageView(this).apply {
             val name = card.visual?.logoResourceName
-            if (!name.isNullOrBlank()) {
-                resources.getIdentifier(name, "drawable", packageName).takeIf { it != 0 }?.let(::setImageResource)
-            } else {
-                setImageResource(R.drawable.ic_homa_card)
-            }
+            val resourceId = name?.let { resources.getIdentifier(it, "drawable", packageName) } ?: 0
+            val drawable = resourceId.takeIf { it != 0 }?.let { AppCompatResources.getDrawable(this@BankCardsActivity, it) }
+                ?: AppCompatResources.getDrawable(this@BankCardsActivity, R.drawable.ic_homa_card)
+            setImageDrawable(drawable)
             contentDescription = card.visual?.persianName ?: "بانک"
             scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setPadding(dp(8), dp(8), dp(8), dp(8))
+            adjustViewBounds = true
+            setPadding(dp(6), dp(6), dp(6), dp(6))
         }
-        logoHolder.addView(logo)
+        logoHolder.addView(logo, FrameLayout.LayoutParams(-1, -1))
         top.addView(logoHolder, LinearLayout.LayoutParams(dp(44), dp(44)))
 
         val bankInfo = LinearLayout(this).apply {
