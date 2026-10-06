@@ -178,6 +178,28 @@ const val SWIPE_ACTION_EDIT = 7
 const val SWIPE_ACTION_SHARE = 8
 const val SWIPE_ACTION_OPEN = 9
 const val SWIPE_ACTION_RESTORE = 10
+const val SWIPE_ACTION_ADD_TAG = 11
+const val SWIPE_ACTION_ADD_NOTE = 12
+
+const val MESSAGE_SWIPE_RIGHT_ACTION = "message_swipe_right_action"
+const val MESSAGE_SWIPE_LEFT_ACTION = "message_swipe_left_action"
+const val MESSAGE_SWIPE_ACTION_NONE = 0
+const val MESSAGE_SWIPE_ACTION_DELETE = 1
+const val MESSAGE_SWIPE_ACTION_SHARE = 2
+const val MESSAGE_SWIPE_ACTION_ADD_TAG = 3
+const val MESSAGE_SWIPE_ACTION_ADD_NOTE = 4
+
+fun android.content.Context.getMessageSwipeRightAction() =
+    getSharedPrefs().getInt(MESSAGE_SWIPE_RIGHT_ACTION, MESSAGE_SWIPE_ACTION_ADD_TAG)
+
+fun android.content.Context.setMessageSwipeRightAction(value: Int) =
+    getSharedPrefs().edit().putInt(MESSAGE_SWIPE_RIGHT_ACTION, value).apply()
+
+fun android.content.Context.getMessageSwipeLeftAction() =
+    getSharedPrefs().getInt(MESSAGE_SWIPE_LEFT_ACTION, MESSAGE_SWIPE_ACTION_ADD_NOTE)
+
+fun android.content.Context.setMessageSwipeLeftAction(value: Int) =
+    getSharedPrefs().edit().putInt(MESSAGE_SWIPE_LEFT_ACTION, value).apply()
 const val SWIPE_VIBRATION = "swipe_vibration"
 const val SWIPE_RIPPLE = "swipe_ripple"
 
