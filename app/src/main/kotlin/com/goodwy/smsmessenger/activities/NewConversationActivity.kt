@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import android.widget.RelativeLayout
@@ -37,6 +38,7 @@ class NewConversationActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        logIncomingSmsIntent()
         title = getString(R.string.new_conversation)
         updateTextColors(binding.newConversationHolder)
 
@@ -160,6 +162,46 @@ class NewConversationActivity : SimpleActivity() {
         binding.contactsLetterFastscrollerThumb.setupWithFastScroller(binding.contactsLetterFastscroller)
         binding.contactsLetterFastscrollerThumb.textColor = properAccentColor.getContrastColor()
         binding.contactsLetterFastscrollerThumb.thumbColor = properAccentColor.getColorStateList()
+    }
+
+    /**
+     * Temporary diagnostics for external SMS intents (e.g. Divar -> Homa).
+     * This only logs the incoming intent; it does not change SMS behavior.
+     */
+    private fun logIncomingSmsIntent() {
+        if (intent.action != Intent.ACTION_SENDTO &&
+            intent.action != Intent.ACTION_VIEW &&
+            intent.action != Intent.ACTION_SEND &&
+            intent.action != Intent.ACTION_SEND_MULTIPLE
+        ) {
+            return
+        }
+
+        try {
+            val extras = intent.extras
+            val lines = buildString {
+                appendLine("=== HOMA SMS INTENT DEBUG ===")
+                appendLine("action=${intent.action}")
+                appendLine("data=${intent.dataString}")
+                appendLine("type=${intent.type}")
+                appendLine("flags=0x${intent.flags.toString(16)}")
+                appendLine("referrer=${intent.referrer}")
+                appendLine("callingPackage=${callingPackage}")
+                appendLine("extras=${extras?.keySet()?.size ?: 0}")
+                extras?.keySet()?.sorted()?.forEach { key ->
+                    val value = try {
+                        extras.get(key)
+                    } catch (e: Exception) {
+                        "<unreadable: ${e.javaClass.simpleName}>"
+                    }
+                    appendLine("extra[$key]=${value}")
+                }
+                appendLine("=== END HOMA SMS INTENT DEBUG ===")
+            }
+            Log.i("HomaSmsIntent", lines)
+        } catch (e: Exception) {
+            Log.e("HomaSmsIntent", "Failed to inspect incoming SMS intent", e)
+        }
     }
 
     private fun isThirdPartyIntent(): Boolean {
