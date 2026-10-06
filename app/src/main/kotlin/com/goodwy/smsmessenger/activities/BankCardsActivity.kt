@@ -533,32 +533,208 @@ class BankCardsActivity : SimpleActivity() {
         val dialog = BottomSheetDialog(this)
         val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            background = roundedBackground(surfaceColor, Color.TRANSPARENT, 0, dp(28))
+            setPadding(dp(20), dp(12), dp(20), dp(24))
+        }
+        val handle = View(this).apply { setBackgroundColor(withAlpha(secondaryTextColor, 0.28f)) }
+        sheet.addView(handle, LinearLayout.LayoutParams(dp(38), dp(4)).apply {
+            gravity = Gravity.CENTER
+            bottomMargin = dp(16)
+        })
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        val accent = card.visual?.color ?: primaryColor
+        val logoHolder = MaterialCardView(this).apply {
+            radius = dp(16).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(withAlpha(accent, 0.10f))
+        }
+        val logo = ImageView(this).apply {
+            val name = card.visual?.logoResourceName
+            val resourceId = name?.let { resources.getIdentifier(it, "drawable", packageName) } ?: 0
+            val drawable = resourceId.takeIf { it != 0 }?.let {
+                AppCompatResources.getDrawable(this@BankCardsActivity, it)
+            } ?: AppCompatResources.getDrawable(this@BankCardsActivity, R.drawable.ic_homa_card)
+            setImageDrawable(drawable)
+            contentDescription = card.visual?.persianName ?: "بانک"
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
+        logoHolder.addView(logo, FrameLayout.LayoutParams(-1, -1))
+        header.addView(logoHolder, LinearLayout.LayoutParams(dp(52), dp(52)))
+
+        val bankInfo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(12), 0, 0, 0)
+        }
+        bankInfo.addView(TextView(this@BankCardsActivity).apply {
+            text = card.visual?.persianName ?: card.bankId
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(textColor)
+        })
+        bankInfo.addView(TextView(this@BankCardsActivity).apply {
+            text = if (card.holderName.isBlank()) "کارت بانکی" else card.holderName
+            textSize = 12.5f
+            setTextColor(secondaryTextColor)
+            setPadding(0, dp(3), 0, 0)
+        })
+        header.addView(bankInfo, LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(iconButton(R.drawable.ic_homa_more, "گزینه‌های بیشتر", secondaryTextColor).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                showCardOptions(card)
+            }
+        }, LinearLayout.LayoutParams(dp(44), dp(44)))
+        sheet.addView(header)
+
+        val numberCard = MaterialCardView(this).apply {
+            radius = dp(20).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(withAlpha(primaryColor, 0.07f))
+            strokeWidth = dp(1)
+            strokeColor = withAlpha(primaryColor, 0.16f)
+        }
+        val numberBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+        }
+        numberBox.addView(TextView(this@BankCardsActivity).apply {
+            text = "شماره کارت"
+            textSize = 12f
+            textDirection = View.TEXT_DIRECTION_RTL
+            gravity = Gravity.CENTER
+            setTextColor(secondaryTextColor)
+        })
+        numberBox.addView(TextView(this@BankCardsActivity).apply {
+            text = repo.formatCard(card.cardNumber)
+            textSize = 22f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            textDirection = View.TEXT_DIRECTION_LTR
+            gravity = Gravity.CENTER
+            setTextColor(textColor)
+            setPadding(0, dp(7), 0, 0)
+        })
+        numberCard.addView(numberBox, ViewGroup.LayoutParams(-1, -2))
+        sheet.addView(numberCard, LinearLayout.LayoutParams(-1, dp(92)).apply { topMargin = dp(16) })
+
+        val details = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(4), dp(14), dp(4), 0)
+        }
+        fun addDetail(label: String, value: String, copyValue: String? = null) {
+            if (value.isBlank()) return
+            val row = LinearLayout(this@BankCardsActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                setPadding(0, dp(3), 0, dp(3))
+            }
+            val labels = LinearLayout(this@BankCardsActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+            }
+            labels.addView(TextView(this@BankCardsActivity).apply {
+                text = label
+                textSize = 11.5f
+                setTextColor(secondaryTextColor)
+            })
+            labels.addView(TextView(this@BankCardsActivity).apply {
+                text = value
+                textSize = 14f
+                setTextColor(textColor)
+                setPadding(0, dp(2), 0, 0)
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            })
+            row.addView(labels, LinearLayout.LayoutParams(0, dp(52), 1f))
+            if (copyValue != null) {
+                row.addView(iconButton(R.drawable.ic_homa_copy, "کپی $label", primaryColor).apply {
+                    setOnClickListener { copy(copyValue) }
+                }, LinearLayout.LayoutParams(dp(44), dp(44)))
+            }
+            details.addView(row)
+        }
+        addDetail("صاحب کارت", if (card.holderName.isBlank()) "ثبت نشده" else card.holderName)
+        addDetail(
+            "شماره شبا",
+            if (card.iban.isBlank()) "ثبت نشده" else "IR ${repo.formatIban(card.iban)}",
+            card.iban.takeIf { it.isNotBlank() }
+        )
+        sheet.addView(details)
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        actions.addView(MaterialButton(this@BankCardsActivity).apply {
+            text = "کپی شماره کارت"
+            minWidth = 0
+            minimumWidth = 0
+            minHeight = dp(50)
+            minimumHeight = dp(50)
+            cornerRadius = dp(14)
+            backgroundTintList = ColorStateList.valueOf(primaryColor)
+            setTextColor(onPrimaryColor())
+            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_copy)
+            iconTint = ColorStateList.valueOf(onPrimaryColor())
+            setOnClickListener { copy(card.cardNumber) }
+        }, LinearLayout.LayoutParams(0, dp(50), 1f))
+        actions.addView(MaterialButton(this@BankCardsActivity).apply {
+            text = "ویرایش"
+            minWidth = 0
+            minimumWidth = 0
+            minHeight = dp(50)
+            minimumHeight = dp(50)
+            cornerRadius = dp(14)
+            backgroundTintList = ColorStateList.valueOf(withAlpha(primaryColor, 0.10f))
+            setTextColor(primaryColor)
+            icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_edit)
+            iconTint = ColorStateList.valueOf(primaryColor)
+            setOnClickListener {
+                dialog.dismiss()
+                showEditor(card)
+            }
+        }, LinearLayout.LayoutParams(0, dp(50), 1f).apply { marginStart = dp(10) })
+        sheet.addView(actions, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(10) })
+        sheet.addView(TextView(this).apply {
+            text = "اطلاعات کارت فقط روی دستگاه شما ذخیره می‌شود."
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(withAlpha(secondaryTextColor, 0.82f))
+            setPadding(0, dp(12), 0, 0)
+        })
+        dialog.setContentView(sheet)
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(surfaceColor))
+        dialog.window?.navigationBarColor = surfaceColor
+        applySheetInsets(sheet)
+    }
+
+    private fun showCardOptions(card: BankCard) {
+        val dialog = BottomSheetDialog(this)
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             background = roundedBackground(surfaceColor, Color.TRANSPARENT, 0, dp(24))
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setPadding(dp(20), dp(12), dp(20), dp(22))
         }
         sheet.addView(TextView(this).apply {
-            text = card.visual?.persianName ?: "کارت بانکی"
+            text = "گزینه‌های کارت"
             textSize = 20f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(textColor)
             setPadding(0, 0, 0, dp(12))
         })
-
-        sheet.addView(actionButton("ویرایش کارت", R.drawable.ic_homa_edit) {
-            dialog.dismiss()
-            showEditor(card)
-        })
-        sheet.addView(actionButton("کپی شماره کارت", R.drawable.ic_homa_copy) {
-            dialog.dismiss()
-            copy(card.cardNumber)
-        })
-        if (card.iban.isNotBlank()) {
-            sheet.addView(actionButton("کپی شماره شبا", R.drawable.ic_homa_copy) {
-                dialog.dismiss()
-                copy(card.iban)
-            })
-        }
         sheet.addView(actionButton("اشتراک‌گذاری", R.drawable.ic_homa_share) {
             dialog.dismiss()
             share(card)
@@ -580,14 +756,12 @@ class BankCardsActivity : SimpleActivity() {
                 }
                 .show()
         })
-
         dialog.setContentView(sheet)
         dialog.show()
         dialog.window?.setBackgroundDrawable(ColorDrawable(surfaceColor))
         dialog.window?.navigationBarColor = surfaceColor
         applySheetInsets(sheet)
     }
-
     private fun actionButton(label: String, iconRes: Int, tint: Int = primaryColor, action: () -> Unit) =
         MaterialButton(this).apply {
             text = label
