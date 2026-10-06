@@ -16,6 +16,7 @@ import android.text.style.URLSpan
 import android.text.util.Linkify
 import android.util.TypedValue
 import android.view.*
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.graphics.Typeface
