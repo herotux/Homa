@@ -10,6 +10,8 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.method.LinkMovementMethod
 import android.text.style.ForegroundColorSpan
+import android.text.style.ClickableSpan
+import android.text.TextPaint
 import android.text.style.URLSpan
 import android.text.util.Linkify
 import android.util.TypedValue
@@ -85,6 +87,8 @@ import com.goodwy.smsmessenger.dialogs.DeleteConfirmationDialog
 import com.goodwy.smsmessenger.dialogs.MessageAnnotationDialogs
 import com.goodwy.smsmessenger.dialogs.MessageDetailsDialog
 import com.goodwy.smsmessenger.dialogs.SelectTextDialog
+import com.goodwy.smsmessenger.features.bankcards.BankFinancialDetector
+import com.goodwy.smsmessenger.features.bankcards.DetectedFinancialNumber
 import com.goodwy.smsmessenger.extensions.config
 import com.goodwy.smsmessenger.extensions.getContactFromAddress
 import com.goodwy.smsmessenger.extensions.withLtrNumbers
@@ -492,6 +496,7 @@ class ThreadAdapter(
             threadMessageBody.apply {
                 val spannable = SpannableString(message.body.withLtrNumbers())
                 Linkify.addLinks(spannable, Linkify.ALL)
+                addFinancialNumberLinks(spannable, message.body)
                 text = spannable
                 val alignment =
                     if (context.config.textAlignment == TEXT_ALIGNMENT_ALONG_EDGES) View.TEXT_ALIGNMENT_VIEW_END else View.TEXT_ALIGNMENT_INHERIT
@@ -740,6 +745,67 @@ class ThreadAdapter(
                 }
             }
         }
+    }
+
+    private fun addFinancialNumberLinks(spannable: SpannableString, originalText: String) {
+        BankFinancialDetector.findAll(originalText).forEach { detected ->
+            val rawPattern = if (detected.isCard) {
+                Regex("""(?:[0-9۰-۹٠-٩][\\s-]?){15}[0-9۰-۹٠-٩]""")
+            } else {
+                Regex("""IR[\\s-]?[0-9۰-۹٠-٩]{2}(?:[\\s-]?[0-9۰-۹٠-٩]){22}""", RegexOption.IGNORE_CASE)
+            }
+            val match = rawPattern.find(originalText) ?: return@forEach
+            val start = match.range.first
+            val end = match.range.last + 1
+            if (end > spannable.length) return@forEach
+            spannable.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) = showFinancialPreview(detected)
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = activity.getProperPrimaryColor()
+                    ds.isUnderlineText = true
+                }
+            }, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    private fun showFinancialPreview(detected: DetectedFinancialNumber) {
+        val bank = detected.bank
+        val box = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(24), dp(8), dp(24), dp(8))
+        }
+        val logo = android.widget.ImageView(activity).apply {
+            val id = bank?.logoResourceName?.let { activity.resources.getIdentifier(it, "drawable", activity.packageName) } ?: 0
+            if (id != 0) setImageResource(id) else setImageResource(R.drawable.ic_homa_card)
+            scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
+        box.addView(logo, LinearLayout.LayoutParams(dp(64), dp(64)))
+        box.addView(TextView(activity).apply {
+            text = bank?.persianName ?: "بانک شناسایی نشد"
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(textColor)
+            setPadding(0, dp(8), 0, dp(4))
+        })
+        box.addView(TextView(activity).apply {
+            text = if (detected.isCard) "••••  ••••  ••••  " + detected.value.takeLast(4)
+            else "IR " + detected.value.removePrefix("IR").chunked(4).joinToString(" ")
+            textSize = if (detected.isCard) 19f else 15f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            textDirection = View.TEXT_DIRECTION_LTR
+            gravity = Gravity.CENTER
+            setTextColor(textColor)
+            setPadding(0, dp(6), 0, dp(14))
+        })
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(if (detected.isCard) "شماره کارت" else "شماره شبا")
+            .setView(box)
+            .setPositiveButton("کپی") { _, _ -> activity.copyToClipboard(detected.value) }
+            .setNegativeButton("بستن", null)
+            .show()
     }
 
     private fun setupReceivedMessageView(messageBinding: ItemMessageBinding, message: Message) {
