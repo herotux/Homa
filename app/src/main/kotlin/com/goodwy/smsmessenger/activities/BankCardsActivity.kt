@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
@@ -17,7 +18,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import com.goodwy.commons.extensions.getProperPrimaryColor
+import com.goodwy.commons.extensions.getProperTextColor
+import com.goodwy.commons.extensions.getSurfaceColor
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -37,7 +40,7 @@ import com.google.android.material.textfield.TextInputLayout
 /**
  * Homa Bank Cards — a clean, native screen using the same visual language as Settings.
  */
-class BankCardsActivity : AppCompatActivity() {
+class BankCardsActivity : SimpleActivity() {
     private lateinit var repo: BankCardsRepository
     private lateinit var root: FrameLayout
     private lateinit var content: LinearLayout
@@ -48,11 +51,11 @@ class BankCardsActivity : AppCompatActivity() {
     private lateinit var countText: TextView
     private var cards = mutableListOf<BankCard>()
 
-    private val backgroundColor get() = themeColor(com.google.android.material.R.attr.colorSurface)
-    private val surfaceColor get() = themeColor(com.google.android.material.R.attr.colorSurface)
-    private val primaryColor get() = themeColor(androidx.appcompat.R.attr.colorPrimary)
-    private val textColor get() = themeColor(android.R.attr.textColorPrimary)
-    private val secondaryTextColor get() = themeColor(android.R.attr.textColorSecondary)
+    private val backgroundColor get() = getSurfaceColor()
+    private val surfaceColor get() = getSurfaceColor()
+    private val primaryColor get() = getProperPrimaryColor()
+    private val textColor get() = getProperTextColor()
+    private val secondaryTextColor get() = textColor.withAlpha(0.68f)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -214,16 +217,6 @@ class BankCardsActivity : AppCompatActivity() {
         labels.addView(countText)
         box.addView(labels, LinearLayout.LayoutParams(0, -1, 1f))
 
-        box.addView(MaterialButton(this).apply {
-            text = "افزودن"
-            this.icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
-            iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
-            setTextColor(primaryColor)
-            minWidth = 0
-            minimumWidth = 0
-            setPadding(dp(10), 0, dp(10), 0)
-            setOnClickListener { showEditor(null) }
-        }, LinearLayout.LayoutParams(-2, dp(44)))
         return box
     }
 
@@ -414,21 +407,18 @@ class BankCardsActivity : AppCompatActivity() {
             setTextColor(secondaryTextColor)
             setPadding(0, dp(7), 0, dp(16))
         })
-        addView(MaterialButton(this@BankCardsActivity).apply {
-            text = "افزودن کارت بانکی"
-            this.icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_add)
-            iconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
-            setOnClickListener { showEditor(null) }
-        }, LinearLayout.LayoutParams(-2, dp(48)))
     }
 
     private fun showEditor(existing: BankCard?) {
         val dialog = BottomSheetDialog(this)
-        val scroll = ScrollView(this)
+        val scroll = ScrollView(this).apply {
+            background = roundedBackground(surfaceColor, Color.TRANSPARENT, 0, dp(24))
+            clipToOutline = true
+        }
         val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(20), dp(10), dp(20), dp(26))
+            setPadding(dp(20), dp(18), dp(20), dp(30))
         }
         scroll.addView(sheet)
 
@@ -456,7 +446,7 @@ class BankCardsActivity : AppCompatActivity() {
             hint = "شماره کارت"
             endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
             addView(cardInput)
-        }, LinearLayout.LayoutParams(-1, dp(70)))
+        }, LinearLayout.LayoutParams(-1, dp(78)))
 
         val detected = TextView(this).apply {
             textSize = 12.5f
@@ -472,7 +462,7 @@ class BankCardsActivity : AppCompatActivity() {
         sheet.addView(TextInputLayout(this).apply {
             hint = "نام صاحب کارت (اختیاری)"
             addView(holderInput)
-        }, LinearLayout.LayoutParams(-1, dp(70)).apply { topMargin = dp(6) })
+        }, LinearLayout.LayoutParams(-1, dp(78)).apply { topMargin = dp(8) })
 
         val ibanInput = TextInputEditText(this).apply {
             hint = "IR..."
@@ -493,6 +483,11 @@ class BankCardsActivity : AppCompatActivity() {
 
         sheet.addView(MaterialButton(this).apply {
             text = if (existing == null) "ذخیره کارت" else "ذخیره تغییرات"
+            backgroundTintList = ColorStateList.valueOf(primaryColor)
+            setTextColor(onPrimaryColor())
+            cornerRadius = dp(14)
+            minHeight = dp(52)
+            minimumHeight = dp(52)
             setOnClickListener {
                 val card = repo.normalizeCard(cardInput.text?.toString().orEmpty())
                 val holder = holderInput.text?.toString().orEmpty().trim()
@@ -535,6 +530,7 @@ class BankCardsActivity : AppCompatActivity() {
         val dialog = BottomSheetDialog(this)
         val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            background = roundedBackground(surfaceColor, Color.TRANSPARENT, 0, dp(24))
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setPadding(dp(20), dp(12), dp(20), dp(22))
         }
@@ -592,7 +588,8 @@ class BankCardsActivity : AppCompatActivity() {
             text = label
             gravity = Gravity.START or Gravity.CENTER_VERTICAL
             this.icon = ContextCompat.getDrawable(context, iconRes)
-            iconTint = android.content.res.ColorStateList.valueOf(tint)
+            iconTint = ColorStateList.valueOf(tint)
+            backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
             setTextColor(textColor)
             minHeight = dp(52)
             minimumHeight = dp(52)
@@ -666,12 +663,9 @@ class BankCardsActivity : AppCompatActivity() {
     private fun withAlpha(color: Int, alpha: Float): Int =
         Color.argb((255f * alpha).toInt().coerceIn(0, 255), Color.red(color), Color.green(color), Color.blue(color))
 
-    private fun themeColor(attr: Int): Int {
-        val value = android.util.TypedValue()
-        if (!theme.resolveAttribute(attr, value, true)) return Color.GRAY
-        return if (value.resourceId != 0) {
-            runCatching { ContextCompat.getColor(this, value.resourceId) }.getOrDefault(value.data)
-        } else value.data
+    private fun onPrimaryColor(): Int {
+        val luminance = (0.299 * Color.red(primaryColor) + 0.587 * Color.green(primaryColor) + 0.114 * Color.blue(primaryColor)) / 255.0
+        return if (luminance > 0.62) Color.BLACK else Color.WHITE
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
