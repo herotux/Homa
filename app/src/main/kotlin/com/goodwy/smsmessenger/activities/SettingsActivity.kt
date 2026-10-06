@@ -803,7 +803,7 @@ class SettingsActivity : SimpleActivity() {
     private fun setupMessageSwipeActions() = binding.apply {
         settingsMessageSwipeRightActionHolder.beVisibleIf(config.useSwipeToAction)
         settingsMessageSwipeLeftActionHolder.beVisibleIf(config.useSwipeToAction)
-        settingsMessageSwipeRightAction.text = getMessageSwipeActionText(config.context = this@SettingsActivity, this@SettingsActivity.getMessageSwipeRightAction())
+        settingsMessageSwipeRightAction.text = getMessageSwipeActionText(this@SettingsActivity, this@SettingsActivity.getMessageSwipeRightAction())
         settingsMessageSwipeLeftAction.text = getMessageSwipeActionText(this@SettingsActivity, this@SettingsActivity.getMessageSwipeLeftAction())
 
         settingsMessageSwipeRightActionHolder.setOnClickListener {
@@ -918,6 +918,8 @@ class SettingsActivity : SimpleActivity() {
                     RadioItem(SWIPE_ACTION_BLOCK, getString(com.goodwy.commons.R.string.block_number), icon = com.goodwy.commons.R.drawable.ic_block_vector),
                     RadioItem(SWIPE_ACTION_CALL, getString(com.goodwy.commons.R.string.call), icon = com.goodwy.commons.R.drawable.ic_phone_vector),
                     RadioItem(SWIPE_ACTION_MESSAGE, getString(com.goodwy.commons.R.string.send_sms), icon = R.drawable.ic_messages),
+                    RadioItem(SWIPE_ACTION_ADD_TAG, getString(R.string.annotation_add_label), icon = R.drawable.ic_homa_add),
+                    RadioItem(SWIPE_ACTION_ADD_NOTE, getString(R.string.annotation_add_note), icon = R.drawable.ic_homa_edit),
                     RadioItem(SWIPE_ACTION_NONE, getString(com.goodwy.commons.R.string.nothing)),
                 ) else arrayListOf(
                     RadioItem(SWIPE_ACTION_MARK_READ, getString(R.string.mark_as_read), icon = R.drawable.ic_mark_read),
