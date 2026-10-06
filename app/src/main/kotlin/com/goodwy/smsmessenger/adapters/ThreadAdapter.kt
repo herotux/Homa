@@ -17,9 +17,11 @@ import android.text.util.Linkify
 import android.util.TypedValue
 import android.view.*
 import android.widget.LinearLayout
+import android.widget.TextView
+import android.graphics.Typeface
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.widget.PopupMenu
 import android.widget.RelativeLayout
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toDrawable
