@@ -1,17 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<me.thanel.swipeactionview.SwipeActionView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/thread_message_holder"
+    android:id="@+id/messageSwipeView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="@dimen/small_margin"
     android:layout_marginBottom="@dimen/tiny_margin"
     android:foreground="@drawable/selector"
     android:paddingStart="@dimen/activity_margin"
-    android:paddingEnd="@dimen/activity_margin">
+    android:clickable="true"
+    android:focusable="true">
 
     <RelativeLayout
+        android:id="@+id/messageSwipeRightIconHolder"
+        android:layout_width="@dimen/swipe_width"
+        android:layout_height="match_parent"
+        android:layout_gravity="left|center_vertical"
+        android:background="@color/primary">
+        <ImageView
+            android:id="@+id/messageSwipeRightIcon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginLeft="@dimen/big_margin"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:contentDescription="@null" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/messageSwipeLeftIconHolder"
+        android:layout_width="@dimen/swipe_width"
+        android:layout_height="match_parent"
+        android:layout_gravity="right|center_vertical"
+        android:background="@color/primary">
+        <ImageView
+            android:id="@+id/messageSwipeLeftIcon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginRight="@dimen/big_margin"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:contentDescription="@null" />
+    </RelativeLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/thread_message_wrapper"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
