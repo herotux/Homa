@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.Typeface
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -437,7 +438,6 @@ class BankCardsActivity : SimpleActivity() {
 
         val cardInput = TextInputEditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
-            hint = "6037 9918 1234 5678"
             existing?.let { setText(repo.formatCard(it.cardNumber)) }
             textDirection = View.TEXT_DIRECTION_LTR
             gravity = Gravity.CENTER
@@ -446,7 +446,7 @@ class BankCardsActivity : SimpleActivity() {
             hint = "شماره کارت"
             endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT
             addView(cardInput)
-        }, LinearLayout.LayoutParams(-1, dp(78)))
+        }, LinearLayout.LayoutParams(-1, dp(64)))
 
         val detected = TextView(this).apply {
             textSize = 12.5f
@@ -456,23 +456,21 @@ class BankCardsActivity : SimpleActivity() {
         sheet.addView(detected)
 
         val holderInput = TextInputEditText(this).apply {
-            hint = "نام صاحب کارت"
             existing?.holderName?.let(::setText)
         }
         sheet.addView(TextInputLayout(this).apply {
             hint = "نام صاحب کارت (اختیاری)"
             addView(holderInput)
-        }, LinearLayout.LayoutParams(-1, dp(78)).apply { topMargin = dp(8) })
+        }, LinearLayout.LayoutParams(-1, dp(64)).apply { topMargin = dp(10) })
 
         val ibanInput = TextInputEditText(this).apply {
-            hint = "IR..."
             existing?.let { if (it.iban.isNotBlank()) setText(repo.formatIban(it.iban)) }
             textDirection = View.TEXT_DIRECTION_LTR
         }
         sheet.addView(TextInputLayout(this).apply {
             hint = "شماره شبا (اختیاری)"
             addView(ibanInput)
-        }, LinearLayout.LayoutParams(-1, dp(70)).apply { topMargin = dp(6) })
+        }, LinearLayout.LayoutParams(-1, dp(64)).apply { topMargin = dp(10) })
 
         fun updateDetected() {
             val bank = repo.detect(repo.normalizeCard(cardInput.text?.toString().orEmpty()))
@@ -483,8 +481,10 @@ class BankCardsActivity : SimpleActivity() {
 
         sheet.addView(MaterialButton(this).apply {
             text = if (existing == null) "ذخیره کارت" else "ذخیره تغییرات"
-            backgroundTintList = ColorStateList.valueOf(primaryColor)
-            setTextColor(onPrimaryColor())
+            backgroundTintList = ColorStateList.valueOf(surfaceColor)
+            strokeWidth = dp(1)
+            strokeColor = ColorStateList.valueOf(withAlpha(primaryColor, 0.55f))
+            setTextColor(primaryColor)
             cornerRadius = dp(14)
             minHeight = dp(52)
             minimumHeight = dp(52)
@@ -523,6 +523,8 @@ class BankCardsActivity : SimpleActivity() {
 
         dialog.setContentView(scroll)
         dialog.show()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(surfaceColor))
+        dialog.window?.navigationBarColor = surfaceColor
         applySheetInsets(scroll)
     }
 
@@ -580,6 +582,8 @@ class BankCardsActivity : SimpleActivity() {
 
         dialog.setContentView(sheet)
         dialog.show()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(surfaceColor))
+        dialog.window?.navigationBarColor = surfaceColor
         applySheetInsets(sheet)
     }
 
