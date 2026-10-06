@@ -56,6 +56,17 @@ fun String.getListNumbersFromText(): List<String> {
     return numbers.filter { it.count() in 4..30 }
 }
 
+/**
+ * Keeps numeric content visually left-to-right when embedded in RTL text.
+ * This is display-only; the stored SMS body is never modified.
+ */
+fun String.withLtrNumbers(): String {
+    val pattern = Regex("(?<![\\p{L}\\p{N}])[+]?[٠-٩۰-۹\\d][٠-٩۰-۹\\d\\s().,\\-+]*[٠-٩۰-۹\\d](?![\\p{L}\\p{N}])")
+    return pattern.replace(this) { match ->
+        "\u2066${match.value}\u2069"
+    }
+}
+
 // Trying to get the code from the SMS to offer to copy in the notification
 //fun String.getOTPFromText(): String? {
 //    val numbers = Regex("(?=.*\\d)[\\d.,]+").findAll(this)
