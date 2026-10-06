@@ -5,7 +5,9 @@ import com.goodwy.smsmessenger.helpers.IranianBankRegistry
 data class DetectedFinancialNumber(
     val value: String,
     val bank: IranianBankRegistry.BankInfo?,
-    val isCard: Boolean
+    val isCard: Boolean,
+    val start: Int,
+    val end: Int
 )
 
 object BankFinancialDetector {
@@ -24,7 +26,7 @@ object BankFinancialDetector {
         ibanPattern.findAll(text).forEach { match ->
             val normalized = normalizeIban(match.value)
             if (IranianBankRegistry.isValidIban(normalized)) {
-                results += DetectedFinancialNumber(normalized, IranianBankRegistry.findByIban(normalized), false)
+                results += DetectedFinancialNumber(normalized, IranianBankRegistry.findByIban(normalized), false, match.range.first, match.range.last + 1)
                 occupied += match.range
             }
         }
@@ -34,7 +36,7 @@ object BankFinancialDetector {
                 val normalized = normalizeDigits(match.value).filter(Char::isDigit)
                 val bank = IranianBankRegistry.findByCard(normalized)
                 if (bank != null && IranianBankRegistry.isValidCardNumber(normalized)) {
-                    results += DetectedFinancialNumber(normalized, bank, true)
+                    results += DetectedFinancialNumber(normalized, bank, true, match.range.first, match.range.last + 1)
                 }
             }
         }
