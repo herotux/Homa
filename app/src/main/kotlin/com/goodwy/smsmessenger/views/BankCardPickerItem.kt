@@ -17,6 +17,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
+import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.features.bankcards.BankCard
 import com.goodwy.smsmessenger.features.bankcards.BankCardsRepository
