@@ -749,15 +749,9 @@ class ThreadAdapter(
 
     private fun addFinancialNumberLinks(spannable: SpannableString, originalText: String) {
         BankFinancialDetector.findAll(originalText).forEach { detected ->
-            val rawPattern = if (detected.isCard) {
-                Regex("""(?:[0-9۰-۹٠-٩][\\s-]?){15}[0-9۰-۹٠-٩]""")
-            } else {
-                Regex("""IR[\\s-]?[0-9۰-۹٠-٩]{2}(?:[\\s-]?[0-9۰-۹٠-٩]){22}""", RegexOption.IGNORE_CASE)
-            }
-            val match = rawPattern.find(originalText) ?: return@forEach
-            val start = match.range.first
-            val end = match.range.last + 1
-            if (end > spannable.length) return@forEach
+            val start = originalText.substring(0, detected.start).withLtrNumbers().length
+            val end = originalText.substring(0, detected.end).withLtrNumbers().length
+            if (start < 0 || end > spannable.length || start >= end) return@forEach
             spannable.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) = showFinancialPreview(detected)
                 override fun updateDrawState(ds: TextPaint) {
