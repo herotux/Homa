@@ -1120,6 +1120,8 @@ class ThreadAdapter(
         }
     }
 
+    private fun dp(value: Int): Int = (value * activity.resources.displayMetrics.density).toInt()
+
     inner class ThreadViewHolder(val binding: ViewBinding) : ViewHolder(binding.root)
 }
 
