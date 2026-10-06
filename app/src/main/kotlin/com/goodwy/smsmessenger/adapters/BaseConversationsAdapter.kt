@@ -503,6 +503,8 @@ abstract class BaseConversationsAdapter(
             SWIPE_ACTION_BLOCK -> com.goodwy.commons.R.drawable.ic_block_vector
             SWIPE_ACTION_CALL -> com.goodwy.commons.R.drawable.ic_phone_vector
             SWIPE_ACTION_MESSAGE -> R.drawable.ic_messages
+            SWIPE_ACTION_ADD_TAG -> R.drawable.ic_homa_add
+            SWIPE_ACTION_ADD_NOTE -> R.drawable.ic_homa_edit
             else -> if (read) R.drawable.ic_mark_unread else R.drawable.ic_mark_read
         }
     }
@@ -514,6 +516,7 @@ abstract class BaseConversationsAdapter(
             SWIPE_ACTION_BLOCK -> resources.getColor(com.goodwy.commons.R.color.red_700, activity.theme)
             SWIPE_ACTION_CALL -> resources.getColor(R.color.green_call, activity.theme)
             SWIPE_ACTION_MESSAGE -> resources.getColor(com.goodwy.commons.R.color.ic_messages, activity.theme)
+            SWIPE_ACTION_ADD_TAG, SWIPE_ACTION_ADD_NOTE -> properPrimaryColor
             else -> properPrimaryColor
         }
     }
