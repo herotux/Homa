@@ -87,6 +87,7 @@ import com.goodwy.smsmessenger.dialogs.MessageDetailsDialog
 import com.goodwy.smsmessenger.dialogs.SelectTextDialog
 import com.goodwy.smsmessenger.extensions.config
 import com.goodwy.smsmessenger.extensions.getContactFromAddress
+import com.goodwy.smsmessenger.extensions.withLtrNumbers
 import com.goodwy.smsmessenger.extensions.getListNumbersFromText
 import com.goodwy.smsmessenger.extensions.getTextSizeMessage
 import com.goodwy.smsmessenger.extensions.isImageMimeType
