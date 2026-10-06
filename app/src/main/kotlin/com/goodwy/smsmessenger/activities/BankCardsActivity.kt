@@ -809,7 +809,7 @@ class BankCardsActivity : SimpleActivity() {
 
     private fun maskedCardNumber(value: String): String {
         val card = repo.normalizeCard(value)
-        return if (card.length == 16) "••••  ••••  ••••  ${card.takeLast(4)}" else repo.formatCard(card)
+        return repo.formatCard(card)
     }
 
     private fun iconButton(resId: Int, description: String, tint: Int): ImageView =
