@@ -152,4 +152,6 @@
     <string name="share_diagnostics">Share diagnostics log</string>
     <string name="features">Features</string>
     <string name="bank_cards">Bank cards</string>
+    <string name="message_swipe_right_action">Message swipe right action</string>
+    <string name="message_swipe_left_action">Message swipe left action</string>
 </resources>
