@@ -55,7 +55,7 @@ class BankCardsActivity : SimpleActivity() {
     private val surfaceColor get() = getSurfaceColor()
     private val primaryColor get() = getProperPrimaryColor()
     private val textColor get() = getProperTextColor()
-    private val secondaryTextColor get() = textColor.withAlpha(0.68f)
+    private val secondaryTextColor get() = withAlpha(textColor, 0.68f)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
