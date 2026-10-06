@@ -425,7 +425,21 @@ class ConversationsAdapter(
             SWIPE_ACTION_BLOCK -> swipedBlock(conversation)
             SWIPE_ACTION_CALL -> swipedCall(conversation)
             SWIPE_ACTION_MESSAGE -> swipedSMS(conversation)
+            SWIPE_ACTION_ADD_TAG -> swipedAddTag(conversation)
+            SWIPE_ACTION_ADD_NOTE -> swipedAddNote(conversation)
             else -> swipedMarkRead(conversation)
+        }
+    }
+
+    private fun swipedAddTag(conversation: Conversation) {
+        ConversationAnnotationDialogs.editLabels(activity, conversation) {
+            notifyConversationAnnotationChanged(conversation.threadId)
+        }
+    }
+
+    private fun swipedAddNote(conversation: Conversation) {
+        ConversationAnnotationDialogs.editNote(activity, conversation) {
+            notifyConversationAnnotationChanged(conversation.threadId)
         }
     }
 
