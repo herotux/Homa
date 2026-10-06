@@ -9,7 +9,7 @@
         android:id="@+id/choose_wrapper"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:constraint_referenced_ids="choose_photo,choose_video,take_photo,record_video,record_audio,pick_file,pick_contact,schedule_message"
+        app:constraint_referenced_ids="choose_photo,choose_video,take_photo,record_video,record_audio,pick_file,pick_contact,schedule_message,pick_bank_card"
         app:flow_verticalGap="@dimen/small_margin"
         app:flow_wrapMode="aligned"
         app:layout_constraintEnd_toEndOf="parent"
@@ -287,4 +287,12 @@
             android:textSize="@dimen/small_text_size"
             android:visibility="gone" />
     </LinearLayout>
+
+    <com.goodwy.smsmessenger.views.BankCardPickerItem
+        android:id="@+id/pick_bank_card"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="کارت بانکی" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
+
