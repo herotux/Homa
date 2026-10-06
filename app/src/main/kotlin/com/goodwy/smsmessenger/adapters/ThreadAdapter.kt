@@ -243,7 +243,7 @@ class ThreadAdapter(
                 is ThreadError -> setupThreadError(itemView)
                 is ThreadSent -> setupThreadSuccess(itemView, item.delivered)
                 is ThreadSending -> setupThreadSending(itemView)
-                is Message -> setupView(holder, itemView, item)
+                is Message -> setupView(holder, (holder as ThreadViewHolder).binding.root, item)
             }
         }
         bindViewHolder(holder)
@@ -582,6 +582,82 @@ class ThreadAdapter(
             }
         }
         setupAnnotations(holder, ItemMessageBinding.bind(view), message)
+        setupMessageSwipe(holder, ItemMessageBinding.bind(view), message)
+    }
+
+    private fun setupMessageSwipe(holder: ViewHolder, binding: ItemMessageBinding, message: Message) {
+        val root = holder.itemView as? SwipeActionView ?: return
+        val isRtl = activity.isRTLLayout
+        val leftAction = if (isRtl) activity.getMessageSwipeRightAction() else activity.getMessageSwipeLeftAction()
+        val rightAction = if (isRtl) activity.getMessageSwipeLeftAction() else activity.getMessageSwipeRightAction()
+
+        fun iconFor(action: Int) = when (action) {
+            MESSAGE_SWIPE_ACTION_DELETE -> com.goodwy.commons.R.drawable.ic_delete_outline
+            MESSAGE_SWIPE_ACTION_SHARE -> com.goodwy.commons.R.drawable.ic_ios_share
+            MESSAGE_SWIPE_ACTION_ADD_TAG -> R.drawable.ic_homa_add
+            MESSAGE_SWIPE_ACTION_ADD_NOTE -> R.drawable.ic_homa_edit
+            else -> com.goodwy.commons.R.drawable.ic_more_horiz
+        }
+
+        fun colorFor(action: Int) = when (action) {
+            MESSAGE_SWIPE_ACTION_DELETE -> resources.getColor(R.color.red_call, activity.theme)
+            else -> activity.getProperPrimaryColor()
+        }
+
+        val leftHolder = root.findViewById<View>(R.id.messageSwipeLeftIconHolder)
+        val rightHolder = root.findViewById<View>(R.id.messageSwipeRightIconHolder)
+        val leftIcon = root.findViewById<ImageView>(R.id.messageSwipeLeftIcon)
+        val rightIcon = root.findViewById<ImageView>(R.id.messageSwipeRightIcon)
+
+        leftIcon.setImageResource(iconFor(leftAction))
+        rightIcon.setImageResource(iconFor(rightAction))
+        leftHolder.setBackgroundColor(colorFor(leftAction))
+        rightHolder.setBackgroundColor(colorFor(rightAction))
+        leftIcon.setColorFilter(activity.getProperPrimaryColor().getContrastColor())
+        rightIcon.setColorFilter(activity.getProperPrimaryColor().getContrastColor())
+
+        root.setDirectionEnabled(SwipeDirection.Left, leftAction != MESSAGE_SWIPE_ACTION_NONE)
+        root.setDirectionEnabled(SwipeDirection.Right, rightAction != MESSAGE_SWIPE_ACTION_NONE)
+        root.useHapticFeedback = activity.config.swipeVibration
+
+        root.swipeGestureListener = object : SwipeGestureListener {
+            override fun onSwipedLeft(view: SwipeActionView): Boolean {
+                leftIcon.slideLeftReturn(leftHolder)
+                performMessageSwipe(leftAction, message, holder)
+                return true
+            }
+
+            override fun onSwipedRight(view: SwipeActionView): Boolean {
+                rightIcon.slideRightReturn(rightHolder)
+                performMessageSwipe(rightAction, message, holder)
+                return true
+            }
+
+            override fun onSwipedActivated(swipedRight: Boolean) {
+                if (swipedRight) rightIcon.slideRight(rightHolder) else leftIcon.slideLeft()
+            }
+
+            override fun onSwipedDeactivated(swipedRight: Boolean) {
+                if (swipedRight) rightIcon.slideRightReturn(rightHolder) else leftIcon.slideLeftReturn(leftHolder)
+            }
+        }
+    }
+
+    private fun performMessageSwipe(action: Int, message: Message, holder: ViewHolder) {
+        when (action) {
+            MESSAGE_SWIPE_ACTION_DELETE -> {
+                selectedKeys.clear()
+                selectedKeys.add(message.getSelectionKey())
+                askConfirmDelete()
+            }
+            MESSAGE_SWIPE_ACTION_SHARE -> activity.shareTextIntent(message.body)
+            MESSAGE_SWIPE_ACTION_ADD_TAG -> MessageAnnotationDialogs.editLabels(activity, message) {
+                notifyItemChanged(holder.bindingAdapterPosition)
+            }
+            MESSAGE_SWIPE_ACTION_ADD_NOTE -> MessageAnnotationDialogs.editNote(activity, message) {
+                notifyItemChanged(holder.bindingAdapterPosition)
+            }
+        }
     }
     private fun setupAnnotations(holder: ViewHolder, binding: ItemMessageBinding, message: Message) {
         val wrapper = binding.threadMessageWrapper
