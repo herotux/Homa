@@ -185,7 +185,7 @@ class NewConversationActivity : SimpleActivity() {
                 appendLine("data=${intent.dataString}")
                 appendLine("type=${intent.type}")
                 appendLine("flags=0x${intent.flags.toString(16)}")
-                appendLine("referrer=${intent.referrer}")
+                appendLine("referrer=<not available from this Activity API>")
                 appendLine("callingPackage=${callingPackage}")
                 appendLine("extras=${extras?.keySet()?.size ?: 0}")
                 extras?.keySet()?.sorted()?.forEach { key ->
