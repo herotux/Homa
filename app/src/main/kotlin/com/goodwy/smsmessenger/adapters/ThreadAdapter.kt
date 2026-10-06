@@ -489,7 +489,7 @@ class ThreadAdapter(
             threadMessageHolder.isSelected = selectedKeys.contains(message.getSelectionKey())
             threadMessageBodyWrapper.beVisibleIf(message.body.isNotEmpty())
             threadMessageBody.apply {
-                val spannable = SpannableString(message.body)
+                val spannable = SpannableString(message.body.withLtrNumbers())
                 Linkify.addLinks(spannable, Linkify.ALL)
                 text = spannable
                 val alignment =
