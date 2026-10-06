@@ -198,7 +198,7 @@ class NewConversationActivity : SimpleActivity() {
                 }
                 appendLine("=== END HOMA SMS INTENT DEBUG ===")
             }
-            Log.i("HomaSmsIntent", lines)
+            HomaDiagnostics.log("HOMA_SMS_INTENT_DEBUG", lines.replace("\n", " | "))
         } catch (e: Exception) {
             Log.e("HomaSmsIntent", "Failed to inspect incoming SMS intent", e)
         }
