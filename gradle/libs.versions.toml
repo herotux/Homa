@@ -20,7 +20,7 @@ room = "2.8.4"
 mmslib = "1.0.0"
 indicatorFastScroll = "fe6ddbc316"
 #Goodwy
-right-commons = "3eef02c5fa21719b1ee85d9d959a23c6b33635c7"
+right-commons = "41baa72f14c84e36e68efb5c7ac62e7801228ebf"
 behavioRule = "1.0.1"
 rxAnimation = "2.1.1"
 rxJava3 = "3.1.5"
