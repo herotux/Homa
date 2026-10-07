@@ -68,7 +68,7 @@ class BankCardPickerItem @JvmOverloads constructor(
         // for accessibility without changing the current visual density.
         val label = TextView(context).apply {
             text = if (isPersian()) "کارت بانکی" else "Bank card"
-            setTextColor(text)
+            setTextColor(textColor)
             textSize = 11f
             gravity = Gravity.CENTER
             visibility = View.GONE
@@ -306,7 +306,7 @@ class BankCardPickerItem @JvmOverloads constructor(
     }
 
     private fun isPersian(): Boolean =
-        resources.configuration.locales.firstOrNull()?.language?.equals("fa", true) == true
+        resources.configuration.locales.takeIf { it.size > 0 }?.get(0)?.language?.equals("fa", true) == true
 
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
