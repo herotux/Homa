@@ -766,6 +766,7 @@ class ThreadAdapter(
 
     private fun showFinancialPreview(detected: DetectedFinancialNumber) {
         val bank = detected.bank
+        val textColor = activity.getProperTextColor()
         val box = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -778,7 +779,7 @@ class ThreadAdapter(
             setPadding(dp(8), dp(8), dp(8), dp(8))
         }
         box.addView(logo, LinearLayout.LayoutParams(dp(64), dp(64)))
-        box.addView(TextView(activity).apply {
+        box.addView(android.widget.TextView(activity).apply {
             text = bank?.persianName ?: "بانک شناسایی نشد"
             textSize = 18f
             typeface = Typeface.DEFAULT_BOLD
@@ -786,8 +787,8 @@ class ThreadAdapter(
             setTextColor(textColor)
             setPadding(0, dp(8), 0, dp(4))
         })
-        box.addView(TextView(activity).apply {
-            text = if (detected.isCard) "••••  ••••  ••••  " + detected.value.takeLast(4)
+        box.addView(android.widget.TextView(activity).apply {
+            text = if (detected.isCard) detected.value.chunked(4).joinToString("   ")
             else "IR " + detected.value.removePrefix("IR").chunked(4).joinToString(" ")
             textSize = if (detected.isCard) 19f else 15f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
