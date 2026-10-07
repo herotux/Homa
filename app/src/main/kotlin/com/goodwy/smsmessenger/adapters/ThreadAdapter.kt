@@ -55,6 +55,7 @@ import com.goodwy.commons.extensions.getLetterBackgroundColors
 import com.goodwy.commons.extensions.getPopupMenuTheme
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
+import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.getTextSizeSmall
