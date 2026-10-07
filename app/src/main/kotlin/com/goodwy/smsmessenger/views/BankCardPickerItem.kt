@@ -17,7 +17,6 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
-import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.features.bankcards.BankCard
 import com.goodwy.smsmessenger.features.bankcards.BankCardsRepository
@@ -84,7 +83,7 @@ class BankCardPickerItem @JvmOverloads constructor(
         val cards = runCatching { repo.getCards() }.getOrElse { emptyList() }
 
         val dialog = BottomSheetDialog(activity)
-        val surface = activity.getSurfaceColor()
+        val surface = resolveSurfaceColor(activity)
         val textColor = activity.getProperTextColor()
         val secondary = withAlpha(textColor, 0.65f)
         val primary = activity.getProperPrimaryColor()
@@ -265,7 +264,7 @@ class BankCardPickerItem @JvmOverloads constructor(
     }
 
     private fun insertCard(activity: Activity, card: BankCard) {
-        val message = activity.findViewById<EditText>(R.id.threadTypeMessage) ?: return
+        val message = (activity.currentFocus as? EditText) ?: return
         val bankName = card.visual?.persianName ?: card.bankId
         val cardNumber = repo.formatCard(card.cardNumber)
 
@@ -300,7 +299,7 @@ class BankCardPickerItem @JvmOverloads constructor(
         message.requestFocus()
     }
 
-    private fun isPersian(): Boolean =
+    private fun resolveSurfaceColor(context: Context): Int {\n        val value = android.util.TypedValue()\n        context.theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, value, true)\n        return if (value.resourceId != 0) ContextCompat.getColor(context, value.resourceId) else value.data\n    }\n\n    private fun isPersian(): Boolean =
         resources.configuration.locales.firstOrNull()?.language?.equals("fa", true) == true
 
     private fun dp(value: Int): Int =
