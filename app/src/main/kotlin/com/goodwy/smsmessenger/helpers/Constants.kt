@@ -1,6 +1,7 @@
 package com.goodwy.smsmessenger.helpers
 
 import com.goodwy.commons.extensions.checkWhatsNew
+import com.goodwy.commons.extensions.getSharedPrefs
 import com.goodwy.commons.models.Release
 import com.goodwy.smsmessenger.BuildConfig
 import com.goodwy.smsmessenger.R
