@@ -46,7 +46,7 @@ class BankCardPickerItem @JvmOverloads constructor(
         contentDescription = if (isPersian()) "کارت بانکی" else "Bank card"
 
         val primary = context.getProperPrimaryColor()
-        val textColor = context.getProperTextColor()
+        val pickerTextColor = context.getProperTextColor()
 
         val icon = ImageView(context).apply {
             layoutParams = LayoutParams(dp(40), dp(30))
@@ -69,7 +69,7 @@ class BankCardPickerItem @JvmOverloads constructor(
         // for accessibility without changing the current visual density.
         val label = TextView(context).apply {
             text = if (isPersian()) "کارت بانکی" else "Bank card"
-            setTextColor(textColor)
+            setTextColor(pickerTextColor)
             textSize = 11f
             gravity = Gravity.CENTER
             visibility = View.GONE
