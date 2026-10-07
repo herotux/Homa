@@ -13,6 +13,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import java.util.Locale
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.goodwy.commons.extensions.getProperPrimaryColor
@@ -305,8 +306,7 @@ class BankCardPickerItem @JvmOverloads constructor(
         return if (value.resourceId != 0) ContextCompat.getColor(context, value.resourceId) else value.data
     }
 
-    private fun isPersian(): Boolean =
-        resources.configuration.locales.takeIf { it.size > 0 }?.get(0)?.language?.equals("fa", true) == true
+    private fun isPersian(): Boolean = Locale.getDefault().language.equals("fa", true)
 
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
