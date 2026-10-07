@@ -120,4 +120,5 @@
                 tools:text="Received message" />
         </LinearLayout>
     </RelativeLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</me.thanel.swipeactionview.SwipeActionView>
