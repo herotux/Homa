@@ -17,6 +17,7 @@ import android.text.util.Linkify
 import android.util.TypedValue
 import android.view.*
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import android.widget.RelativeLayout
 import androidx.appcompat.content.res.AppCompatResources
@@ -121,6 +122,7 @@ import com.goodwy.smsmessenger.helpers.setupDocumentPreview
 import com.goodwy.smsmessenger.helpers.setupVCardPreview
 import com.goodwy.smsmessenger.models.Attachment
 import com.goodwy.smsmessenger.views.MessageAnnotationsView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.goodwy.smsmessenger.models.Message
 import com.goodwy.smsmessenger.models.ThreadItem
 import com.goodwy.smsmessenger.models.ThreadItem.ThreadDateTime
