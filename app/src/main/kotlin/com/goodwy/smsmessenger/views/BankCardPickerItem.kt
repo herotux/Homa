@@ -45,7 +45,7 @@ class BankCardPickerItem @JvmOverloads constructor(
         contentDescription = if (isPersian()) "کارت بانکی" else "Bank card"
 
         val primary = context.getProperPrimaryColor()
-        val text = context.getProperTextColor()
+        val textColor = context.getProperTextColor()
 
         val icon = ImageView(context).apply {
             layoutParams = LayoutParams(dp(40), dp(30))
@@ -299,7 +299,13 @@ class BankCardPickerItem @JvmOverloads constructor(
         message.requestFocus()
     }
 
-    private fun resolveSurfaceColor(context: Context): Int {\n        val value = android.util.TypedValue()\n        context.theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, value, true)\n        return if (value.resourceId != 0) ContextCompat.getColor(context, value.resourceId) else value.data\n    }\n\n    private fun isPersian(): Boolean =
+    private fun resolveSurfaceColor(context: Context): Int {
+        val value = android.util.TypedValue()
+        context.theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, value, true)
+        return if (value.resourceId != 0) ContextCompat.getColor(context, value.resourceId) else value.data
+    }
+
+    private fun isPersian(): Boolean =
         resources.configuration.locales.firstOrNull()?.language?.equals("fa", true) == true
 
     private fun dp(value: Int): Int =
