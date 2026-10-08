@@ -126,6 +126,9 @@ class SettingsActivity : SimpleActivity() {
         setupLanguage()
 
         setupUseSwipeToAction()
+        setupMessageSwipeEnabled()
+        setupMessageSwipeRightAction()
+        setupMessageSwipeLeftAction()
         setupSwipeWidth()
         setupSwipeVibration()
         setupSwipeRipple()
@@ -748,6 +751,66 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    private fun setupMessageSwipeEnabled() = binding.apply {
+        settingsMessageSwipeEnabled.isChecked = config.messageSwipeEnabled
+        settingsMessageSwipeEnabledHolder.setOnClickListener {
+            settingsMessageSwipeEnabled.toggle()
+            config.messageSwipeEnabled = settingsMessageSwipeEnabled.isChecked
+            config.needRestart = true
+            updateSwipeToActionVisible()
+        }
+    }
+
+    private fun setupMessageSwipeRightAction() = binding.apply {
+        settingsMessageSwipeRightAction.text = getMessageSwipeActionText(false)
+        settingsMessageSwipeRightActionHolder.setOnClickListener {
+            val items = arrayListOf(
+                RadioItem(SWIPE_ACTION_ADD_TAG, getString(R.string.annotation_add_tag), icon = R.drawable.ic_homa_add),
+                RadioItem(SWIPE_ACTION_ADD_NOTE, getString(R.string.annotation_add_note), icon = R.drawable.ic_homa_edit),
+                RadioItem(SWIPE_ACTION_NONE, getString(com.goodwy.commons.R.string.nothing))
+            )
+            RadioGroupIconDialog(
+                this@SettingsActivity,
+                items,
+                config.messageSwipeRightAction,
+                com.goodwy.strings.R.string.swipe_right_action
+            ) {
+                config.messageSwipeRightAction = it as Int
+                config.needRestart = true
+                settingsMessageSwipeRightAction.text = getMessageSwipeActionText(false)
+            }
+        }
+    }
+
+    private fun setupMessageSwipeLeftAction() = binding.apply {
+        settingsMessageSwipeLeftAction.text = getMessageSwipeActionText(true)
+        settingsMessageSwipeLeftActionHolder.setOnClickListener {
+            val items = arrayListOf(
+                RadioItem(SWIPE_ACTION_ADD_TAG, getString(R.string.annotation_add_tag), icon = R.drawable.ic_homa_add),
+                RadioItem(SWIPE_ACTION_ADD_NOTE, getString(R.string.annotation_add_note), icon = R.drawable.ic_homa_edit),
+                RadioItem(SWIPE_ACTION_NONE, getString(com.goodwy.commons.R.string.nothing))
+            )
+            RadioGroupIconDialog(
+                this@SettingsActivity,
+                items,
+                config.messageSwipeLeftAction,
+                com.goodwy.strings.R.string.swipe_left_action
+            ) {
+                config.messageSwipeLeftAction = it as Int
+                config.needRestart = true
+                settingsMessageSwipeLeftAction.text = getMessageSwipeActionText(true)
+            }
+        }
+    }
+
+    private fun getMessageSwipeActionText(left: Boolean) = getString(
+        when (if (left) config.messageSwipeLeftAction else config.messageSwipeRightAction) {
+            SWIPE_ACTION_ADD_TAG -> R.string.annotation_add_tag
+            SWIPE_ACTION_ADD_NOTE -> R.string.annotation_add_note
+            else -> com.goodwy.commons.R.string.nothing
+        }
+    )
+
     private fun setupSwipeWidth() = binding.apply {
         settingsSwipeWidthHolder.beVisibleIf(config.useSwipeToAction)
         settingsSwipeWidth.text = getSwipeWidthText(config.swipeToActionWidth)
@@ -789,6 +852,9 @@ class SettingsActivity : SimpleActivity() {
             settingsSwipeRippleHolder.beVisibleIf(config.useSwipeToAction)
             settingsSwipeRightActionHolder.beVisibleIf(config.useSwipeToAction)
             settingsSwipeLeftActionHolder.beVisibleIf(config.useSwipeToAction)
+            settingsMessageSwipeEnabledHolder.beVisibleIf(config.useSwipeToAction)
+            settingsMessageSwipeRightActionHolder.beVisibleIf(config.useSwipeToAction && config.messageSwipeEnabled)
+            settingsMessageSwipeLeftActionHolder.beVisibleIf(config.useSwipeToAction && config.messageSwipeEnabled)
             settingsSkipArchiveConfirmationHolder.beVisibleIf(
                 (config.swipeLeftAction == SWIPE_ACTION_ARCHIVE || config.swipeRightAction == SWIPE_ACTION_ARCHIVE)
                     && config.isArchiveAvailable && config.useSwipeToAction
