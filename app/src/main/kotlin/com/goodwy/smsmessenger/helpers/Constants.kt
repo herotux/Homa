@@ -183,6 +183,9 @@ const val SWIPE_ACTION_ADD_NOTE = 12
 
 const val SWIPE_VIBRATION = "swipe_vibration"
 const val SWIPE_RIPPLE = "swipe_ripple"
+const val MESSAGE_SWIPE_ENABLED = "message_swipe_enabled"
+const val MESSAGE_SWIPE_RIGHT_ACTION = "message_swipe_right_action"
+const val MESSAGE_SWIPE_LEFT_ACTION = "message_swipe_left_action"
 
 fun whatsNewList(): ArrayList<Release> {
     return arrayListOf<Release>().apply {
