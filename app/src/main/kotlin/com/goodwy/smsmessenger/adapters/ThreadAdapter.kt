@@ -538,7 +538,7 @@ class ThreadAdapter(
         return when (action) {
             SWIPE_ACTION_ADD_TAG -> R.drawable.ic_homa_add
             SWIPE_ACTION_ADD_NOTE -> R.drawable.ic_homa_edit
-            else -> com.goodwy.commons.R.drawable.ic_close
+            else -> R.drawable.ic_homa_add
         }
     }
 
