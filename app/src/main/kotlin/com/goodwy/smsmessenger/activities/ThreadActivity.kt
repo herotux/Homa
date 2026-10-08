@@ -34,11 +34,15 @@ import android.view.View
 import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.LinearLayout.LayoutParams
 import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
@@ -64,6 +68,7 @@ import com.goodwy.smsmessenger.adapters.AutoCompleteTextViewAdapter
 import com.goodwy.smsmessenger.adapters.ThreadAdapter
 import com.goodwy.smsmessenger.databinding.ActivityThreadBinding
 import com.goodwy.smsmessenger.databinding.ItemSelectedContactBinding
+import com.goodwy.smsmessenger.views.ThinkingOrbView
 import com.goodwy.smsmessenger.dialogs.InvalidNumberDialog
 import com.goodwy.smsmessenger.dialogs.RenameConversationDialog
 import com.goodwy.smsmessenger.dialogs.ScheduleMessageDialog
@@ -105,6 +110,10 @@ class ThreadActivity : SimpleActivity() {
     private var isJumpingToMessage = false
     private var isRecycleBin = false
     private var isLaunchedFromShortcut = false
+    private var totalThreadMessages = 0
+    private var messageLoadingOverlay: FrameLayout? = null
+    private var messageLoadingText: TextView? = null
+    private var messageLoadingProgress: ProgressBar? = null
 
     private var isScheduledMessage: Boolean = false
     private var messageToResend: Long? = null
@@ -159,6 +168,7 @@ class ThreadActivity : SimpleActivity() {
         bus = EventBus.getDefault()
         bus!!.register(this)
 
+        setupMessageLoadingIndicator()
         loadConversation()
         setupAttachmentPickerView()
         hideAttachmentPicker()
@@ -351,9 +361,139 @@ class ThreadActivity : SimpleActivity() {
         }
     }
 
+    private fun setupMessageLoadingIndicator() {
+        if (messageLoadingOverlay != null) return
+
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+
+        val overlay = FrameLayout(this).apply {
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
+
+        val card = com.google.android.material.card.MaterialCardView(this).apply {
+            radius = 28f * density
+            cardElevation = 8f * density
+            setCardBackgroundColor(getSurfaceColor())
+            strokeWidth = 1
+            strokeColor = getProperPrimaryColor()
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(10), dp(16), dp(12))
+        }
+
+        content.addView(
+            ThinkingOrbView(this),
+            LinearLayout.LayoutParams(dp(64), dp(64))
+        )
+
+        val text = TextView(this).apply {
+            setTextColor(getProperTextColor())
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding(0, dp(2), 0, 0)
+            text = getString(R.string.loading_messages)
+        }
+        content.addView(
+            text,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        val progress = ProgressBar(
+            this,
+            null,
+            android.R.attr.progressBarStyleHorizontal
+        ).apply {
+            max = 1
+            progress = 0
+            progressTintList = ColorStateList.valueOf(getProperPrimaryColor())
+        }
+        content.addView(
+            progress,
+            LinearLayout.LayoutParams(dp(150), dp(4)).apply {
+                topMargin = dp(7)
+            }
+        )
+
+        card.addView(content)
+
+        overlay.addView(
+            card,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+        )
+
+        binding.root.addView(
+            overlay,
+            CoordinatorLayout.LayoutParams(
+                CoordinatorLayout.LayoutParams.MATCH_PARENT,
+                CoordinatorLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+
+        messageLoadingOverlay = overlay
+        messageLoadingText = text
+        messageLoadingProgress = progress
+        updateMessageLoadingProgress(0)
+    }
+
+    private fun showMessageLoadingIndicator() {
+        if (messageLoadingOverlay == null) setupMessageLoadingIndicator()
+        messageLoadingOverlay?.visibility = View.VISIBLE
+    }
+
+    private fun updateMessageLoadingProgress(loaded: Int) {
+        val total = totalThreadMessages
+        val safeLoaded = if (total > 0) loaded.coerceIn(0, total) else loaded.coerceAtLeast(0)
+
+        runOnUiThread {
+            messageLoadingText?.text = if (total > 0) {
+                getString(R.string.messages_loading_progress, safeLoaded, total)
+            } else {
+                getString(R.string.loading_messages)
+            }
+
+            messageLoadingProgress?.apply {
+                if (total > 0) {
+                    max = total
+                    progress = safeLoaded
+                    isIndeterminate = false
+                } else {
+                    isIndeterminate = true
+                }
+            }
+        }
+    }
+
+    private fun hideMessageLoadingIndicator() {
+        runOnUiThread {
+            messageLoadingOverlay?.let { binding.root.removeView(it) }
+            messageLoadingOverlay = null
+            messageLoadingText = null
+            messageLoadingProgress = null
+        }
+    }
+
     private fun setupCachedMessages(callback: () -> Unit) {
         ensureBackgroundThread {
             val started = System.nanoTime()
+            totalThreadMessages = try {
+                getThreadMessageCount(threadId)
+            } catch (_: Exception) {
+                0
+            }
             messages = try {
                 HomaDiagnostics.timed("THREAD_CACHE_QUERY") {
                     ArrayList(
@@ -381,6 +521,7 @@ class ThreadActivity : SimpleActivity() {
             setupParticipants()
             HomaDiagnostics.log("THREAD_CACHE_READY", "threadId=" + threadId + " messages=" + messages.size + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
             setupAdapter()
+            updateMessageLoadingProgress(messages.size)
 
             runOnUiThread {
                 if (messages.isEmpty() && !isSpecialNumber()) {
@@ -412,10 +553,13 @@ class ThreadActivity : SimpleActivity() {
             privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
 
             val cachedMessagesCode = messages.clone().hashCode()
+            updateMessageLoadingProgress(messages.size)
+
             if (!isRecycleBin) {
                 val refreshStarted = System.nanoTime()
                 messages = getMessages(threadId)
                 HomaDiagnostics.log("THREAD_PROVIDER_REFRESH", "threadId=" + threadId + " messages=" + messages.size + " durationMs=" + ((System.nanoTime() - refreshStarted) / 1_000_000))
+                updateMessageLoadingProgress(messages.size)
                 if (config.useRecycleBin) {
                     val recycledMessages = messagesDB.getThreadMessagesFromRecycleBin(threadId)
                     messages = messages.filterNotInByKey(recycledMessages) { it.getStableId() }
@@ -675,6 +819,7 @@ class ThreadActivity : SimpleActivity() {
             if (loadingOlderMessages) return@ensureBackgroundThread
             loadingOlderMessages = true
             isJumpingToMessage = true
+            showMessageLoadingIndicator()
 
             var cutoff = messages.firstOrNull()?.date ?: Int.MAX_VALUE
             var found = false
@@ -691,6 +836,8 @@ class ThreadActivity : SimpleActivity() {
             threadItems = getThreadItems()
             runOnUiThread {
                 loadingOlderMessages = false
+                updateMessageLoadingProgress(messages.size)
+                hideMessageLoadingIndicator()
                 val index = threadItems.indexOfFirst { (it as? Message)?.id == messageId }
                 getOrCreateThreadAdapter().updateMessages(
                     newMessages = threadItems, scrollPosition = index, smoothScroll = true
@@ -711,12 +858,15 @@ class ThreadActivity : SimpleActivity() {
     private fun loadMoreMessages() {
         if (messages.isEmpty() || allMessagesFetched || loadingOlderMessages) return
         loadingOlderMessages = true
+        showMessageLoadingIndicator()
         val cutoff = messages.first().date
         ensureBackgroundThread {
             fetchOlderMessages(cutoff)
             threadItems = getThreadItems()
             runOnUiThread {
                 loadingOlderMessages = false
+                updateMessageLoadingProgress(messages.size)
+                hideMessageLoadingIndicator()
                 getOrCreateThreadAdapter().updateMessages(threadItems)
                 getOrCreateThreadAdapter().updateTitle()
             }
@@ -753,6 +903,7 @@ class ThreadActivity : SimpleActivity() {
                             jumpToMessage(searchedMessageId)
                         }
                     }
+                    hideMessageLoadingIndicator()
                     setupScrollListener()
                 }
             } else {
