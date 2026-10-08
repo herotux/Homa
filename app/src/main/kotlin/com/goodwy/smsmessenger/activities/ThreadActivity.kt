@@ -372,32 +372,36 @@ class ThreadActivity : SimpleActivity() {
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            elevation = dp(24).toFloat()
+            translationZ = dp(24).toFloat()
         }
 
         val card = com.google.android.material.card.MaterialCardView(this).apply {
-            radius = 28f * density
-            cardElevation = 8f * density
+            radius = 24f * density
+            cardElevation = 12f * density
             setCardBackgroundColor(getSurfaceColor())
-            strokeWidth = 1
-            strokeColor = getProperPrimaryColor()
+            strokeWidth = 0
+            elevation = 12f * density
         }
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(16), dp(10), dp(16), dp(12))
+            setPadding(dp(24), dp(20), dp(24), dp(20))
         }
 
+        val orb = ThinkingOrbView(this)
         content.addView(
-            ThinkingOrbView(this),
-            LinearLayout.LayoutParams(dp(64), dp(64))
+            orb,
+            LinearLayout.LayoutParams(dp(96), dp(96))
         )
 
         val text = TextView(this).apply {
             setTextColor(getProperTextColor())
-            textSize = 13f
+            textSize = 14f
             gravity = Gravity.CENTER
-            setPadding(0, dp(2), 0, 0)
+            includeFontPadding = false
+            setPadding(0, dp(8), 0, 0)
             text = getString(R.string.loading_messages)
         }
         content.addView(
@@ -415,25 +419,24 @@ class ThreadActivity : SimpleActivity() {
         ).apply {
             max = 1
             progress = 0
+            isIndeterminate = true
             progressTintList = ColorStateList.valueOf(getProperPrimaryColor())
         }
         content.addView(
             progress,
-            LinearLayout.LayoutParams(dp(150), dp(4)).apply {
-                topMargin = dp(7)
+            LinearLayout.LayoutParams(dp(180), dp(5)).apply {
+                topMargin = dp(10)
             }
         )
 
         card.addView(content)
 
-        overlay.addView(
-            card,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.CENTER
-            )
+        val cardParams = FrameLayout.LayoutParams(
+            dp(230),
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.CENTER
         )
+        overlay.addView(card, cardParams)
 
         binding.root.addView(
             overlay,
@@ -443,6 +446,9 @@ class ThreadActivity : SimpleActivity() {
             )
         )
 
+        overlay.bringToFront()
+        card.bringToFront()
+
         messageLoadingOverlay = overlay
         messageLoadingText = text
         messageLoadingProgress = progress
@@ -451,7 +457,10 @@ class ThreadActivity : SimpleActivity() {
 
     private fun showMessageLoadingIndicator() {
         if (messageLoadingOverlay == null) setupMessageLoadingIndicator()
-        messageLoadingOverlay?.visibility = View.VISIBLE
+        messageLoadingOverlay?.apply {
+            visibility = View.VISIBLE
+            bringToFront()
+        }
     }
 
     private fun updateMessageLoadingProgress(loaded: Int) {
@@ -469,7 +478,7 @@ class ThreadActivity : SimpleActivity() {
                 if (total > 0) {
                     max = total
                     progress = safeLoaded
-                    isIndeterminate = false
+                    isIndeterminate = safeLoaded < total
                 } else {
                     isIndeterminate = true
                 }
