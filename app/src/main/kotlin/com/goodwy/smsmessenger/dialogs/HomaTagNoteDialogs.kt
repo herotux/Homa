@@ -117,6 +117,9 @@ object HomaTagNoteDialogs {
             .setView(container)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->
+                // A typed tag must be committed even when the user taps OK directly.
+                // Previously it was only committed by IME_ACTION_DONE or suggestion selection.
+                commitTypedTag()
                 onSaved(currentNames())
             }
             .show()
