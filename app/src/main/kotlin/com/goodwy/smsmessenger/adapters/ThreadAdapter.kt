@@ -72,6 +72,8 @@ import com.goodwy.commons.helpers.FontHelper
 import com.goodwy.commons.helpers.TEXT_ALIGNMENT_ALONG_EDGES
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
+import me.thanel.swipeactionview.SwipeActionView
+import me.thanel.swipeactionview.SwipeGestureListener
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.activities.NewConversationActivity
 import com.goodwy.smsmessenger.activities.SimpleActivity
