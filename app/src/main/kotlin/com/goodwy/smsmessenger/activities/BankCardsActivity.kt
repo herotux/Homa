@@ -246,7 +246,7 @@ class BankCardsActivity : SimpleActivity() {
 
         cardsContainer.removeAllViews()
         filtered.forEachIndexed { index, card ->
-            cardsContainer.addView(bankCardView(card), LinearLayout.LayoutParams(-1, dp(176)).apply {
+            cardsContainer.addView(bankCardView(card), LinearLayout.LayoutParams(-1, dp(220)).apply {
                 topMargin = if (index == 0) 0 else dp(12)
             })
         }
@@ -267,12 +267,14 @@ class BankCardsActivity : SimpleActivity() {
 
     private fun bankCardView(card: BankCard): View {
         val accent = card.visual?.color ?: primaryColor
+        val foreground = onPrimaryColorFor(accent)
+        val foregroundMuted = withAlpha(foreground, 0.72f)
+
         val cardRoot = MaterialCardView(this).apply {
-            radius = dp(20).toFloat()
+            radius = dp(24).toFloat()
             cardElevation = 0f
-            setCardBackgroundColor(surfaceColor)
-            strokeWidth = dp(1)
-            strokeColor = withAlpha(accent, 0.22f)
+            setCardBackgroundColor(accent)
+            strokeWidth = 0
             isClickable = true
             isFocusable = true
             setOnClickListener { showCardActions(card) }
@@ -281,100 +283,132 @@ class BankCardsActivity : SimpleActivity() {
         val frame = FrameLayout(this).apply {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             clipChildren = true
+            clipToPadding = true
         }
-        frame.addView(View(this).apply { setBackgroundColor(accent) },
-            FrameLayout.LayoutParams(dp(5), -1, Gravity.END))
 
         val main = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(18), dp(14), dp(22), dp(12))
+            setPadding(dp(20), dp(18), dp(20), dp(16))
         }
 
-        val top = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        val top = FrameLayout(this).apply {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
-        val logoHolder = MaterialCardView(this).apply {
-            radius = dp(12).toFloat()
-            cardElevation = 0f
-            setCardBackgroundColor(withAlpha(accent, 0.10f))
-        }
-        val logo = ImageView(this).apply {
-            val name = card.visual?.logoResourceName
-            val resourceId = name?.let { resources.getIdentifier(it, "drawable", packageName) } ?: 0
-            val drawable = resourceId.takeIf { it != 0 }?.let { AppCompatResources.getDrawable(this@BankCardsActivity, it) }
-                ?: AppCompatResources.getDrawable(this@BankCardsActivity, R.drawable.ic_homa_card)
-            setImageDrawable(drawable)
-            contentDescription = card.visual?.persianName ?: "بانک"
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            adjustViewBounds = true
-            setPadding(dp(6), dp(6), dp(6), dp(6))
-        }
-        logoHolder.addView(logo, FrameLayout.LayoutParams(-1, -1))
-        top.addView(logoHolder, LinearLayout.LayoutParams(dp(44), dp(44)))
-
-        val bankInfo = LinearLayout(this).apply {
+        val bankInfo = LinearLayout(this@BankCardsActivity).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(10), 0, 0, 0)
         }
+
         bankInfo.addView(TextView(this@BankCardsActivity).apply {
             text = card.visual?.persianName ?: card.bankId
-            textSize = 16f
+            textSize = 17f
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(textColor)
+            includeFontPadding = false
+            setTextColor(foreground)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
         })
-        bankInfo.addView(TextView(this@BankCardsActivity).apply {
-            text = if (card.holderName.isBlank()) "نام صاحب کارت ثبت نشده" else card.holderName
-            textSize = 12f
-            setTextColor(secondaryTextColor)
-        })
-        top.addView(bankInfo, LinearLayout.LayoutParams(0, -2, 1f))
-        top.addView(iconButton(R.drawable.ic_homa_more, "گزینه‌های کارت", secondaryTextColor).apply {
-            setOnClickListener { showCardActions(card) }
-        }, LinearLayout.LayoutParams(dp(44), dp(44)))
-        main.addView(top)
 
-        main.addView(TextView(this).apply {
+        if (card.holderName.isNotBlank()) {
+            bankInfo.addView(TextView(this@BankCardsActivity).apply {
+                text = card.holderName
+                textSize = 11.5f
+                includeFontPadding = false
+                setTextColor(foregroundMuted)
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(0, dp(5), 0, 0)
+            })
+        }
+
+        top.addView(
+            bankInfo,
+            FrameLayout.LayoutParams(dp(220), -2, Gravity.START or Gravity.TOP)
+        )
+
+        val logoHolder = MaterialCardView(this@BankCardsActivity).apply {
+            radius = dp(12).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(withAlpha(foreground, 0.14f))
+            strokeWidth = 0
+        }
+        val logoName = card.visual?.logoResourceName
+        val logoRes = logoName?.let { resources.getIdentifier(it, "drawable", packageName) } ?: 0
+        logoHolder.addView(ImageView(this@BankCardsActivity).apply {
+            setImageDrawable(
+                logoRes.takeIf { it != 0 }?.let {
+                    AppCompatResources.getDrawable(this@BankCardsActivity, it)
+                } ?: AppCompatResources.getDrawable(this@BankCardsActivity, R.drawable.ic_homa_card)
+            )
+            imageTintList = ColorStateList.valueOf(foreground)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            contentDescription = card.visual?.persianName ?: "بانک"
+        }, FrameLayout.LayoutParams(-1, -1))
+        top.addView(
+            logoHolder,
+            FrameLayout.LayoutParams(dp(44), dp(44), Gravity.END or Gravity.TOP)
+        )
+
+        top.addView(iconButton(R.drawable.ic_homa_more, "گزینه‌های کارت", foreground).apply {
+            background = roundedBackground(withAlpha(foreground, 0.10f), Color.TRANSPARENT, 0, dp(12))
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            setOnClickListener { showCardActions(card) }
+        }, FrameLayout.LayoutParams(dp(44), dp(44), Gravity.END or Gravity.TOP).apply {
+            marginEnd = dp(52)
+        })
+
+        main.addView(top, LinearLayout.LayoutParams(-1, dp(48)))
+
+        val number = TextView(this).apply {
             text = maskedCardNumber(card.cardNumber)
             textSize = 19f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-            letterSpacing = .055f
+            includeFontPadding = false
+            letterSpacing = .035f
             textDirection = View.TEXT_DIRECTION_LTR
             gravity = Gravity.CENTER
-            setTextColor(textColor)
+            maxLines = 1
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setHorizontallyScrolling(true)
+            setTextColor(foreground)
+            contentDescription = "شماره کارت ${maskedCardNumber(card.cardNumber)}"
             setOnClickListener { copy(card.cardNumber) }
-        }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(7) })
+        }
+        main.addView(number, LinearLayout.LayoutParams(-1, dp(68)).apply {
+            topMargin = dp(28)
+        })
 
-        val bottom = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        val footer = FrameLayout(this).apply {
             layoutDirection = View.LAYOUT_DIRECTION_LTR
         }
-        bottom.addView(TextView(this@BankCardsActivity).apply {
+
+        val iban = TextView(this@BankCardsActivity).apply {
             text = if (card.iban.isBlank()) "شبا ثبت نشده" else "IR ${repo.formatIban(card.iban)}"
-            textSize = 11.5f
+            textSize = 10.5f
+            includeFontPadding = false
             textDirection = View.TEXT_DIRECTION_LTR
-            setTextColor(secondaryTextColor)
+            setTextColor(foregroundMuted)
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
-        }, LinearLayout.LayoutParams(0, dp(30), 1f))
-        bottom.addView(MaterialButton(this).apply {
-            text = "کپی"
-            minWidth = 0
-            minimumWidth = 0
-            setPadding(dp(10), 0, dp(10), 0)
-            this.icon = ContextCompat.getDrawable(context, R.drawable.ic_homa_copy)
-            iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
-            setTextColor(primaryColor)
-            setOnClickListener { copy(card.cardNumber) }
-        }, LinearLayout.LayoutParams(-2, dp(36)))
-        main.addView(bottom)
+        }
+        footer.addView(iban, FrameLayout.LayoutParams(dp(230), dp(28), Gravity.START or Gravity.BOTTOM))
 
-        frame.addView(main, FrameLayout.LayoutParams(-1, -1).apply { rightMargin = dp(5) })
+        val copy = iconButton(R.drawable.ic_homa_copy, "کپی شماره کارت", foreground).apply {
+            background = roundedBackground(withAlpha(foreground, 0.10f), Color.TRANSPARENT, 0, dp(10))
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            setOnClickListener { copy(card.cardNumber) }
+        }
+        footer.addView(copy, FrameLayout.LayoutParams(dp(40), dp(40), Gravity.END or Gravity.BOTTOM))
+
+        main.addView(footer, LinearLayout.LayoutParams(-1, dp(40)).apply {
+            topMargin = dp(4)
+        })
+
+        frame.addView(main, FrameLayout.LayoutParams(-1, -1))
         cardRoot.addView(frame)
         return cardRoot
     }
@@ -831,6 +865,12 @@ class BankCardsActivity : SimpleActivity() {
             scaleType = ImageView.ScaleType.CENTER
             setPadding(dp(9), dp(9), dp(9), dp(9))
         }
+
+    private fun onPrimaryColorFor(color: Int): Int {
+        val luminance =
+            (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0
+        return if (luminance > 0.62) Color.BLACK else Color.WHITE
+    }
 
     private fun roundedBackground(fill: Int, stroke: Int, strokeWidth: Int, radius: Int) =
         android.graphics.drawable.GradientDrawable().apply {
