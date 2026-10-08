@@ -26,6 +26,9 @@ interface MessagesDao {
     @Query("SELECT * FROM messages")
     fun getAll(): List<Message>
 
+    @Query("SELECT COUNT(*) FROM messages")
+    fun getCount(): Int
+
     @Query("SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NOT NULL")
     fun getAllRecycleBinMessages(): List<Message>
 
