@@ -425,6 +425,12 @@ class ConversationsAdapter(
             SWIPE_ACTION_BLOCK -> swipedBlock(conversation)
             SWIPE_ACTION_CALL -> swipedCall(conversation)
             SWIPE_ACTION_MESSAGE -> swipedSMS(conversation)
+            SWIPE_ACTION_ADD_TAG -> MessageAnnotationDialogs.editConversationLabels(activity, conversation.threadId) {
+                refreshConversations()
+            }
+            SWIPE_ACTION_ADD_NOTE -> MessageAnnotationDialogs.editConversationNote(activity, conversation.threadId) {
+                refreshConversations()
+            }
             else -> swipedMarkRead(conversation)
         }
     }
