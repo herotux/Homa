@@ -464,6 +464,7 @@ class MainActivity : SimpleActivity() {
         val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
         ensureBackgroundThread {
             val started = System.nanoTime()
+            var initialMessageLoaderShown = false
             try {
                 val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
                 HomaDiagnostics.log("MAIN_CONTACTS_READY", "token=" + token + " contacts=" + privateContacts.size)
@@ -504,7 +505,6 @@ class MainActivity : SimpleActivity() {
                 val localMessageCount = runCatching { messagesDB.getCount() }.getOrDefault(0)
                 val needsInitialMessageImport = config.appRunCount == 1 || localMessageCount == 0
 
-                var initialMessageLoaderShown = false
                 if (needsInitialMessageImport) {
                     val total = getProviderMessageCount()
                     if (total > 0) {
