@@ -72,6 +72,8 @@ import com.goodwy.commons.helpers.FontHelper
 import com.goodwy.commons.helpers.TEXT_ALIGNMENT_ALONG_EDGES
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
+import me.thanel.swipeactionview.SwipeActionView
+import me.thanel.swipeactionview.SwipeGestureListener
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.activities.NewConversationActivity
 import com.goodwy.smsmessenger.activities.SimpleActivity
@@ -491,9 +493,31 @@ class ThreadAdapter(
         }
     }
 
+    private fun setupMessageSwipe(binding: ItemMessageBinding, message: Message) {
+        binding.messageSwipeView.setSwipeGestureListener(object : SwipeGestureListener {
+            override fun onSwipedLeft(swipeActionView: SwipeActionView): Boolean {
+                MessageAnnotationDialogs.editLabels(activity, message) {
+                    notifyMessageAnnotationChanged(message.id)
+                }
+                return true
+            }
+
+            override fun onSwipedRight(swipeActionView: SwipeActionView): Boolean {
+                MessageAnnotationDialogs.editNote(activity, message) {
+                    notifyMessageAnnotationChanged(message.id)
+                }
+                return true
+            }
+        })
+
+        binding.messageSwipeView.setRippleColor(SwipeActionView.SwipeDirection.Left, -1)
+        binding.messageSwipeView.setRippleColor(SwipeActionView.SwipeDirection.Right, -1)
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private fun setupView(holder: ViewHolder, view: View, message: Message) {
         ItemMessageBinding.bind(view).apply {
+            setupMessageSwipe(this, message)
             threadMessageHolder.isSelected = selectedKeys.contains(message.getSelectionKey())
             threadMessageBodyWrapper.beVisibleIf(message.body.isNotEmpty())
             threadMessageBody.apply {
