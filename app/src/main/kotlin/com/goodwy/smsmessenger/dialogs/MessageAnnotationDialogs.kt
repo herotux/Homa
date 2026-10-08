@@ -1,7 +1,6 @@
 package com.goodwy.smsmessenger.dialogs
 
 import com.goodwy.commons.activities.BaseSimpleActivity
-import com.goodwy.commons.dialogs.TagNoteDialogs
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.helpers.HomaDiagnostics
@@ -12,11 +11,11 @@ object MessageAnnotationDialogs {
     fun editLabels(activity: BaseSimpleActivity, message: Message, onSaved: () -> Unit) {
         ensureBackgroundThread {
             val current = MessageAnnotationStore.getMessageLabels(activity, message.id).map { it.name }
+            val suggestions = MessageAnnotationStore.getAllLabelNames(activity)
             activity.runOnUiThread {
-                TagNoteDialogs.editTags(
-                    activity, current,
+                HomaTagNoteDialogs.editTags(
+                    activity, current, suggestions,
                     activity.getString(R.string.annotation_tags_hint),
-                    activity.getString(R.string.annotation_tags_help),
                     activity.getString(R.string.annotation_add_tag)
                 ) { names ->
                     ensureBackgroundThread {
@@ -38,11 +37,12 @@ object MessageAnnotationDialogs {
         ensureBackgroundThread {
             val current = MessageAnnotationStore.getMessageNote(activity, message.id)?.text.orEmpty()
             activity.runOnUiThread {
-                TagNoteDialogs.editNote(
+                HomaTagNoteDialogs.editNote(
                     activity, current,
                     activity.getString(R.string.annotation_note_hint),
-                    activity.getString(R.string.annotation_add_note)
-                ) { text ->
+                    activity.getString(R.string.annotation_edit_note),
+                    onSaved = { text ->
+
                     ensureBackgroundThread {
                         try {
                             HomaDiagnostics.timed("SAVE_MESSAGE_NOTE") {
@@ -53,8 +53,18 @@ object MessageAnnotationDialogs {
                             HomaDiagnostics.error("SAVE_MESSAGE_NOTE_FAILED", e)
                         }
                     }
+                },
+                onDeleted = {
+                    ensureBackgroundThread {
+                        try {
+                            MessageAnnotationStore.setMessageNote(activity, message.id, "")
+                            activity.runOnUiThread(onSaved)
+                        } catch (e: Exception) {
+                            HomaDiagnostics.error("DELETE_MESSAGE_NOTE_FAILED", e)
+                        }
+                    }
                 }
-            }
+            )
         }
     }
 }
