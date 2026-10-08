@@ -929,14 +929,12 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupSwipeLeftAction() = binding.apply {
-        val pro = isPro()
-        settingsSwipeLeftActionHolder.alpha = if (pro) 1f else 0.4f
+        settingsSwipeLeftActionHolder.alpha = 1f
         val stringId =
             if (isRTLLayout) com.goodwy.strings.R.string.swipe_right_action else com.goodwy.strings.R.string.swipe_left_action
-        settingsSwipeLeftActionLabel.text = addLockedLabelIfNeeded(stringId, pro)
+        settingsSwipeLeftActionLabel.text = getString(stringId)
         settingsSwipeLeftAction.text = getSwipeActionText(true)
         settingsSwipeLeftActionHolder.setOnClickListener {
-            if (pro) {
                 val items = if (config.isArchiveAvailable) arrayListOf(
                     RadioItem(SWIPE_ACTION_MARK_READ, getString(R.string.mark_as_read), icon = R.drawable.ic_mark_read),
                     RadioItem(SWIPE_ACTION_DELETE, getString(com.goodwy.commons.R.string.delete), icon = com.goodwy.commons.R.drawable.ic_delete_outline),
@@ -973,13 +971,6 @@ class SettingsActivity : SimpleActivity() {
                             && config.isArchiveAvailable
                     )
                 }
-            } else {
-                RxAnimation.from(settingsSwipeLeftActionHolder)
-                    .shake(shakeTranslation = 2f)
-                    .subscribe()
-
-                showSnackbar(binding.root)
-            }
         }
     }
 
@@ -1439,8 +1430,8 @@ class SettingsActivity : SimpleActivity() {
             val stringId =
                 if (isRTLLayout) com.goodwy.strings.R.string.swipe_right_action
                 else com.goodwy.strings.R.string.swipe_left_action
-            settingsSwipeLeftActionLabel.text = addLockedLabelIfNeeded(stringId, isPro)
-            settingsSwipeLeftActionHolder.alpha = if (isPro) 1f else 0.4f
+            settingsSwipeLeftActionLabel.text = getString(stringId)
+            settingsSwipeLeftActionHolder.alpha = 1f
         }
     }
 
