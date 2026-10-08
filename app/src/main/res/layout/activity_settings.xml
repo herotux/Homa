@@ -574,6 +574,17 @@
                     </RelativeLayout>
 
                     <RelativeLayout
+                        android:id="@+id/settingsMessageSwipeEnabledHolder"
+                        style="@style/SettingsHolderSwitchStyle">
+
+                        <com.goodwy.commons.views.MyMaterialSwitch
+                            android:id="@+id/settingsMessageSwipeEnabled"
+                            style="@style/SettingsSwitchStyle"
+                            android:text="@string/use_message_swipe_gestures"
+                            app:switchPadding="@dimen/bigger_margin" />
+                    </RelativeLayout>
+
+                    <RelativeLayout
                         android:id="@+id/settingsMessageSwipeRightActionHolder"
                         style="@style/SettingsHolderSwitchStyle">
                         <com.goodwy.commons.views.MyTextView
