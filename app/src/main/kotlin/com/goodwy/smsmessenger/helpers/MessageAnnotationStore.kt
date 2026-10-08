@@ -14,6 +14,9 @@ import com.goodwy.smsmessenger.models.MessageNote
 object MessageAnnotationStore {
     private fun dao(context: Context) = context.getMessagesDB().AnnotationLabelsDao()
 
+    fun getAllLabelNames(context: Context): List<String> =
+        dao(context).getLabels().map { it.name }
+
     fun getMessageLabels(context: Context, messageId: Long): List<Tag> =
         dao(context).getMessageLabels(messageId).map(::toTag)
 
