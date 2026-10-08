@@ -73,6 +73,7 @@ import com.goodwy.commons.helpers.TEXT_ALIGNMENT_ALONG_EDGES
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import me.thanel.swipeactionview.SwipeActionView
+import me.thanel.swipeactionview.SwipeDirection
 import me.thanel.swipeactionview.SwipeGestureListener
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.activities.NewConversationActivity
@@ -498,8 +499,8 @@ class ThreadAdapter(
             // Use SwipeActionView's native gesture handling instead of a raw ACTION_UP
             // threshold. The old 96dp threshold could be larger than the actual
             // reveal distance, making otherwise valid swipes fail intermittently.
-            setActivationDistanceRatio(0.45f)
-            setSwipeGestureListener(object : SwipeGestureListener {
+            activationDistanceRatio = 0.45f
+            swipeGestureListener = object : SwipeGestureListener {
                 override fun onSwipedLeft(swipeActionView: SwipeActionView): Boolean {
                     MessageAnnotationDialogs.editLabels(activity, message) {
                         notifyMessageAnnotationChanged(message.id)
@@ -513,11 +514,11 @@ class ThreadAdapter(
                     }
                     return true
                 }
-            })
+            }
 
             // Keep the action backgrounds visually clean; the icons are enough.
-            setRippleColor(SwipeActionView.SwipeDirection.Left, -1)
-            setRippleColor(SwipeActionView.SwipeDirection.Right, -1)
+            setRippleColor(SwipeDirection.Left, -1)
+            setRippleColor(SwipeDirection.Right, -1)
         }
     }
     private fun setupView(holder: ViewHolder, view: View, message: Message) {
