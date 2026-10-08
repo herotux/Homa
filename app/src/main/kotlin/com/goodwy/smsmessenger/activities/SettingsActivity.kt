@@ -852,9 +852,9 @@ class SettingsActivity : SimpleActivity() {
             settingsSwipeRippleHolder.beVisibleIf(config.useSwipeToAction)
             settingsSwipeRightActionHolder.beVisibleIf(config.useSwipeToAction)
             settingsSwipeLeftActionHolder.beVisibleIf(config.useSwipeToAction)
-            settingsMessageSwipeEnabledHolder.beVisibleIf(config.useSwipeToAction)
-            settingsMessageSwipeRightActionHolder.beVisibleIf(config.useSwipeToAction && config.messageSwipeEnabled)
-            settingsMessageSwipeLeftActionHolder.beVisibleIf(config.useSwipeToAction && config.messageSwipeEnabled)
+            settingsMessageSwipeEnabledHolder.beVisible()
+            settingsMessageSwipeRightActionHolder.beVisibleIf(config.messageSwipeEnabled)
+            settingsMessageSwipeLeftActionHolder.beVisibleIf(config.messageSwipeEnabled)
             settingsSkipArchiveConfirmationHolder.beVisibleIf(
                 (config.swipeLeftAction == SWIPE_ACTION_ARCHIVE || config.swipeRightAction == SWIPE_ACTION_ARCHIVE)
                     && config.isArchiveAvailable && config.useSwipeToAction
