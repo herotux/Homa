@@ -11,13 +11,11 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import android.os.Bundle
 import android.provider.Telephony
@@ -506,11 +504,13 @@ class MainActivity : SimpleActivity() {
                 val localMessageCount = runCatching { messagesDB.getCount() }.getOrDefault(0)
                 val needsInitialMessageImport = config.appRunCount == 1 || localMessageCount == 0
 
+                var initialMessageLoaderShown = false
                 if (needsInitialMessageImport) {
                     val total = getProviderMessageCount()
                     if (total > 0) {
                         initialMessageLoadingTotal = total
                         initialMessageLoadingLoaded = 0
+                        initialMessageLoaderShown = true
                         runOnUiThread { showInitialMessageLoadingIndicator() }
 
                         conversations.forEach { conversation ->
@@ -523,13 +523,15 @@ class MainActivity : SimpleActivity() {
                         }
 
                         updateInitialMessageLoadingProgress(initialMessageLoadingTotal)
-                        runOnUiThread { hideInitialMessageLoadingIndicator() }
                     }
                 }
             } catch (e: Exception) {
                 HomaDiagnostics.error("MAIN_REFRESH_FAILED", e)
             } finally {
                 providerRefreshInFlight = false
+                if (initialMessageLoaderShown) {
+                    hideInitialMessageLoadingIndicator()
+                }
                 HomaDiagnostics.log("MAIN_LOAD_END", "token=" + token + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
             }
         }
