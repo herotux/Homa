@@ -273,7 +273,7 @@ class BankCardPickerItem @JvmOverloads constructor(
 
         val selectedText = if (isPersian()) {
             buildString {
-                append("شماره کارت: ").append(cardNumber)
+                append("شماره کارت: \u202A").append(cardNumber).append("\u202C")
                 if (card.holderName.isNotBlank()) {
                     append("\nصاحب کارت: ").append(card.holderName)
                 }
