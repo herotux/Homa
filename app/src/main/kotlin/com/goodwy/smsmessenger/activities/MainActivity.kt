@@ -11,6 +11,14 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.view.Gravity
+import android.view.View
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.os.Bundle
 import android.provider.Telephony
 import android.speech.RecognizerIntent
@@ -38,6 +46,7 @@ import com.goodwy.smsmessenger.models.Conversation
 import com.goodwy.smsmessenger.models.Events
 import com.goodwy.smsmessenger.models.Message
 import com.goodwy.smsmessenger.models.SearchResult
+import com.goodwy.smsmessenger.views.ThinkingOrbView
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -60,6 +69,11 @@ class MainActivity : SimpleActivity() {
     private var scrollListenersAttached = false
     private var messengerInitialized = false
     private var providerRefreshInFlight = false
+    private var initialMessageLoadingOverlay: FrameLayout? = null
+    private var initialMessageLoadingText: TextView? = null
+    private var initialMessageLoadingOrb: ThinkingOrbView? = null
+    private var initialMessageLoadingTotal = 0
+    private var initialMessageLoadingLoaded = 0
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
@@ -489,10 +503,27 @@ class MainActivity : SimpleActivity() {
                     HomaDiagnostics.log("MAIN_UI_REFRESH", "token=" + token + " conversations=" + allConversations.size)
                     setupConversations(allConversations)
                 }
-                if (config.appRunCount == 1) {
-                    conversations.forEach { conversation ->
-                        val loaded = getMessages(conversation.threadId, includeScheduledMessages = false)
-                        loaded.chunked(30).forEach { batch -> messagesDB.insertMessages(*batch.toTypedArray()) }
+                val localMessageCount = runCatching { messagesDB.getCount() }.getOrDefault(0)
+                val needsInitialMessageImport = config.appRunCount == 1 || localMessageCount == 0
+
+                if (needsInitialMessageImport) {
+                    val total = getProviderMessageCount()
+                    if (total > 0) {
+                        initialMessageLoadingTotal = total
+                        initialMessageLoadingLoaded = 0
+                        runOnUiThread { showInitialMessageLoadingIndicator() }
+
+                        conversations.forEach { conversation ->
+                            val loaded = getMessages(conversation.threadId, includeScheduledMessages = false)
+                            loaded.chunked(30).forEach { batch ->
+                                messagesDB.insertMessages(*batch.toTypedArray())
+                                initialMessageLoadingLoaded += batch.size
+                                updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
+                            }
+                        }
+
+                        updateInitialMessageLoadingProgress(initialMessageLoadingTotal)
+                        runOnUiThread { hideInitialMessageLoadingIndicator() }
                     }
                 }
             } catch (e: Exception) {
@@ -501,6 +532,117 @@ class MainActivity : SimpleActivity() {
                 providerRefreshInFlight = false
                 HomaDiagnostics.log("MAIN_LOAD_END", "token=" + token + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
             }
+        }
+    }
+
+    private fun getProviderMessageCount(): Int {
+        fun count(uri: android.net.Uri, idColumn: String): Int {
+            return runCatching {
+                contentResolver.query(uri, arrayOf(idColumn), null, null, null)?.use { it.count } ?: 0
+            }.getOrDefault(0)
+        }
+
+        return count(Telephony.Sms.CONTENT_URI, Telephony.Sms._ID) +
+            count(Telephony.Mms.CONTENT_URI, Telephony.Mms._ID)
+    }
+
+    private fun setupInitialMessageLoadingIndicator() {
+        if (initialMessageLoadingOverlay != null) return
+
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(Color.argb(45, 0, 0, 0))
+            isClickable = false
+            isFocusable = false
+            elevation = dp(30).toFloat()
+            translationZ = dp(30).toFloat()
+        }
+
+        val card = com.google.android.material.card.MaterialCardView(this).apply {
+            radius = 28f * density
+            cardElevation = 16f * density
+            setCardBackgroundColor(getSurfaceColor())
+            strokeWidth = 0
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(28), dp(24), dp(28), dp(24))
+        }
+
+        val orb = ThinkingOrbView(this)
+        content.addView(orb, LinearLayout.LayoutParams(dp(120), dp(120)))
+
+        val text = TextView(this).apply {
+            setTextColor(getProperTextColor())
+            textSize = 15f
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            text = getString(R.string.loading_messages)
+            setPadding(0, dp(10), 0, 0)
+        }
+        content.addView(
+            text,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        card.addView(content)
+
+        overlay.addView(
+            card,
+            FrameLayout.LayoutParams(
+                dp(260),
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+        )
+
+        binding.root.addView(
+            overlay,
+            androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams(
+                androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams.MATCH_PARENT,
+                androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+
+        overlay.bringToFront()
+        card.bringToFront()
+
+        initialMessageLoadingOverlay = overlay
+        initialMessageLoadingText = text
+        initialMessageLoadingOrb = orb
+    }
+
+    private fun showInitialMessageLoadingIndicator() {
+        if (initialMessageLoadingOverlay == null) setupInitialMessageLoadingIndicator()
+        initialMessageLoadingOverlay?.visibility = View.VISIBLE
+        initialMessageLoadingOverlay?.bringToFront()
+        initialMessageLoadingOrb?.resumeAnimation()
+        updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
+    }
+
+    private fun updateInitialMessageLoadingProgress(loaded: Int) {
+        val total = initialMessageLoadingTotal
+        val safeLoaded = if (total > 0) loaded.coerceIn(0, total) else loaded.coerceAtLeast(0)
+        runOnUiThread {
+            initialMessageLoadingText?.text = if (total > 0) {
+                getString(R.string.messages_loading_progress, safeLoaded, total)
+            } else {
+                getString(R.string.loading_messages)
+            }
+        }
+    }
+
+    private fun hideInitialMessageLoadingIndicator() {
+        runOnUiThread {
+            initialMessageLoadingOrb?.pauseAnimation()
+            initialMessageLoadingOverlay?.visibility = View.GONE
         }
     }
 
