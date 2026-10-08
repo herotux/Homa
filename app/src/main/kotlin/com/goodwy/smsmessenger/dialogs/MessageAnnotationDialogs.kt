@@ -33,6 +33,67 @@ object MessageAnnotationDialogs {
         }
     }
 
+    fun editConversationLabels(activity: BaseSimpleActivity, threadId: Long, onSaved: () -> Unit) {
+        ensureBackgroundThread {
+            val current = MessageAnnotationStore.getConversationLabels(activity, threadId).map { it.name }
+            val suggestions = MessageAnnotationStore.getAllLabelNames(activity)
+            activity.runOnUiThread {
+                HomaTagNoteDialogs.editTags(
+                    activity, current, suggestions,
+                    activity.getString(R.string.annotation_tags_hint),
+                    activity.getString(R.string.annotation_add_tag)
+                ) { names ->
+                    ensureBackgroundThread {
+                        try {
+                            HomaDiagnostics.timed("SAVE_CONVERSATION_TAGS") {
+                                MessageAnnotationStore.setConversationLabels(activity, threadId, names)
+                            }
+                            activity.runOnUiThread(onSaved)
+                        } catch (e: Exception) {
+                            HomaDiagnostics.error("SAVE_CONVERSATION_TAGS_FAILED", e)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun editConversationNote(activity: BaseSimpleActivity, threadId: Long, onSaved: () -> Unit) {
+        ensureBackgroundThread {
+            val current = MessageAnnotationStore.getConversationNote(activity, threadId)?.text.orEmpty()
+            activity.runOnUiThread {
+                HomaTagNoteDialogs.editNote(
+                    activity,
+                    current,
+                    activity.getString(R.string.annotation_note_hint),
+                    activity.getString(R.string.annotation_edit_note),
+                    { text ->
+                        ensureBackgroundThread {
+                            try {
+                                HomaDiagnostics.timed("SAVE_CONVERSATION_NOTE") {
+                                    MessageAnnotationStore.setConversationNote(activity, threadId, text)
+                                }
+                                activity.runOnUiThread(onSaved)
+                            } catch (e: Exception) {
+                                HomaDiagnostics.error("SAVE_CONVERSATION_NOTE_FAILED", e)
+                            }
+                        }
+                    },
+                    {
+                        ensureBackgroundThread {
+                            try {
+                                MessageAnnotationStore.setConversationNote(activity, threadId, "")
+                                activity.runOnUiThread(onSaved)
+                            } catch (e: Exception) {
+                                HomaDiagnostics.error("DELETE_CONVERSATION_NOTE_FAILED", e)
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+
     fun editNote(activity: BaseSimpleActivity, message: Message, onSaved: () -> Unit) {
         ensureBackgroundThread {
             val current = MessageAnnotationStore.getMessageNote(activity, message.id)?.text.orEmpty()
