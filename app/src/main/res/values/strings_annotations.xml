@@ -2,6 +2,8 @@
 <resources>
     <string name="annotation_add_tag">Add tags</string>
     <string name="annotation_add_note">Add note</string>
+    <string name="annotation_edit_note">Edit note</string>
+    <string name="annotation_delete_note">Delete note</string>
     <string name="annotation_tags_hint">Tags, separated by commas</string>
     <string name="annotation_tags_help">Use #work, #important or plain names. Existing tags are reused.</string>
     <string name="annotation_note_hint">Write a private note about this message or conversation…</string>
