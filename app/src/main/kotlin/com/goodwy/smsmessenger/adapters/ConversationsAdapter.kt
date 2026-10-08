@@ -37,6 +37,8 @@ import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_BLOCK
 import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_CALL
 import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_DELETE
 import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_MESSAGE
+import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_ADD_TAG
+import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_ADD_NOTE
 import com.goodwy.smsmessenger.helpers.generateRandomId
 import com.goodwy.smsmessenger.helpers.refreshConversations
 import com.goodwy.smsmessenger.messaging.cancelScheduleSendPendingIntent
@@ -425,10 +427,10 @@ class ConversationsAdapter(
             SWIPE_ACTION_BLOCK -> swipedBlock(conversation)
             SWIPE_ACTION_CALL -> swipedCall(conversation)
             SWIPE_ACTION_MESSAGE -> swipedSMS(conversation)
-            SWIPE_ACTION_ADD_TAG -> MessageAnnotationDialogs.editConversationLabels(activity, conversation.threadId) {
+            SWIPE_ACTION_ADD_TAG -> ConversationAnnotationDialogs.editLabels(activity, conversation) {
                 refreshConversations()
             }
-            SWIPE_ACTION_ADD_NOTE -> MessageAnnotationDialogs.editConversationNote(activity, conversation.threadId) {
+            SWIPE_ACTION_ADD_NOTE -> ConversationAnnotationDialogs.editNote(activity, conversation) {
                 refreshConversations()
             }
             else -> swipedMarkRead(conversation)
