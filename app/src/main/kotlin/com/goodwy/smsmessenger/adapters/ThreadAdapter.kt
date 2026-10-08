@@ -492,40 +492,32 @@ class ThreadAdapter(
     }
 
     private fun setupMessageSwipe(binding: ItemMessageBinding, message: Message) {
-        var downX = 0f
-        var downY = 0f
-        val threshold = dp(96)
-
-        binding.messageSwipeView.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = event.rawX
-                    downY = event.rawY
-                    false
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    val dx = event.rawX - downX
-                    val dy = event.rawY - downY
-                    if (kotlin.math.abs(dx) >= threshold && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.2f) {
-                        if (dx < 0) {
-                            MessageAnnotationDialogs.editLabels(activity, message) {
-                                notifyMessageAnnotationChanged(message.id)
-                            }
-                        } else {
-                            MessageAnnotationDialogs.editNote(activity, message) {
-                                notifyMessageAnnotationChanged(message.id)
-                            }
-                        }
+        binding.messageSwipeView.apply {
+            // Use SwipeActionView's native gesture handling instead of a raw ACTION_UP
+            // threshold. The old 96dp threshold could be larger than the actual
+            // reveal distance, making otherwise valid swipes fail intermittently.
+            setActivationDistanceRatio(0.45f)
+            setSwipeGestureListener(object : SwipeGestureListener {
+                override fun onSwipedLeft(swipeActionView: SwipeActionView): Boolean {
+                    MessageAnnotationDialogs.editLabels(activity, message) {
+                        notifyMessageAnnotationChanged(message.id)
                     }
-                    false
+                    return true
                 }
 
-                else -> false
-            }
+                override fun onSwipedRight(swipeActionView: SwipeActionView): Boolean {
+                    MessageAnnotationDialogs.editNote(activity, message) {
+                        notifyMessageAnnotationChanged(message.id)
+                    }
+                    return true
+                }
+            })
+
+            // Keep the action backgrounds visually clean; the icons are enough.
+            setRippleColor(SwipeActionView.SwipeDirection.Left, -1)
+            setRippleColor(SwipeActionView.SwipeDirection.Right, -1)
         }
     }
-    @SuppressLint("ClickableViewAccessibility")
     private fun setupView(holder: ViewHolder, view: View, message: Message) {
         ItemMessageBinding.bind(view).apply {
             setupMessageSwipe(this, message)
