@@ -38,33 +38,34 @@ object MessageAnnotationDialogs {
             val current = MessageAnnotationStore.getMessageNote(activity, message.id)?.text.orEmpty()
             activity.runOnUiThread {
                 HomaTagNoteDialogs.editNote(
-                    activity, current,
+                    activity,
+                    current,
                     activity.getString(R.string.annotation_note_hint),
                     activity.getString(R.string.annotation_edit_note),
-                    onSaved = { text ->
-
-                    ensureBackgroundThread {
-                        try {
-                            HomaDiagnostics.timed("SAVE_MESSAGE_NOTE") {
-                                MessageAnnotationStore.setMessageNote(activity, message.id, text)
+                    { text ->
+                        ensureBackgroundThread {
+                            try {
+                                HomaDiagnostics.timed("SAVE_MESSAGE_NOTE") {
+                                    MessageAnnotationStore.setMessageNote(activity, message.id, text)
+                                }
+                                activity.runOnUiThread(onSaved)
+                            } catch (e: Exception) {
+                                HomaDiagnostics.error("SAVE_MESSAGE_NOTE_FAILED", e)
                             }
-                            activity.runOnUiThread(onSaved)
-                        } catch (e: Exception) {
-                            HomaDiagnostics.error("SAVE_MESSAGE_NOTE_FAILED", e)
+                        }
+                    },
+                    {
+                        ensureBackgroundThread {
+                            try {
+                                MessageAnnotationStore.setMessageNote(activity, message.id, "")
+                                activity.runOnUiThread(onSaved)
+                            } catch (e: Exception) {
+                                HomaDiagnostics.error("DELETE_MESSAGE_NOTE_FAILED", e)
+                            }
                         }
                     }
-                },
-                onDeleted = {
-                    ensureBackgroundThread {
-                        try {
-                            MessageAnnotationStore.setMessageNote(activity, message.id, "")
-                            activity.runOnUiThread(onSaved)
-                        } catch (e: Exception) {
-                            HomaDiagnostics.error("DELETE_MESSAGE_NOTE_FAILED", e)
-                        }
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }
