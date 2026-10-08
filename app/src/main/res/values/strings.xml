@@ -153,5 +153,7 @@
     <string name="features">Features</string>
     <string name="bank_cards">Bank cards</string>
     <string name="message_swipe_right_action">Message swipe right action</string>
+    <string name="use_message_swipe_gestures">Use message swipe gestures</string>
+    <string name="use_message_swipe_gestures_summary">Swipe messages left or right to perform an action</string>
     <string name="message_swipe_left_action">Message swipe left action</string>
 </resources>
