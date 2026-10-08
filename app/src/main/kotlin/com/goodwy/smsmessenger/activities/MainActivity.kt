@@ -466,6 +466,21 @@ class MainActivity : SimpleActivity() {
             val started = System.nanoTime()
             var initialMessageLoaderShown = false
             try {
+                // Show the initial import loader before the expensive provider
+                // contacts/conversations work starts.
+                val localMessageCount = runCatching { messagesDB.getCount() }.getOrDefault(0)
+                val needsInitialMessageImport = config.appRunCount == 1 || localMessageCount == 0
+
+                if (needsInitialMessageImport) {
+                    val total = getProviderMessageCount()
+                    if (total > 0) {
+                        initialMessageLoadingTotal = total
+                        initialMessageLoadingLoaded = 0
+                        initialMessageLoaderShown = true
+                        runOnUiThread { showInitialMessageLoadingIndicator() }
+                    }
+                }
+
                 val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
                 HomaDiagnostics.log("MAIN_CONTACTS_READY", "token=" + token + " contacts=" + privateContacts.size)
                 val conversations = getConversations(privateContacts = privateContacts)
@@ -502,18 +517,8 @@ class MainActivity : SimpleActivity() {
                     HomaDiagnostics.log("MAIN_UI_REFRESH", "token=" + token + " conversations=" + allConversations.size)
                     setupConversations(allConversations)
                 }
-                val localMessageCount = runCatching { messagesDB.getCount() }.getOrDefault(0)
-                val needsInitialMessageImport = config.appRunCount == 1 || localMessageCount == 0
-
-                if (needsInitialMessageImport) {
-                    val total = getProviderMessageCount()
-                    if (total > 0) {
-                        initialMessageLoadingTotal = total
-                        initialMessageLoadingLoaded = 0
-                        initialMessageLoaderShown = true
-                        runOnUiThread { showInitialMessageLoadingIndicator() }
-
-                        conversations.forEach { conversation ->
+                if (initialMessageLoaderShown) {
+                    conversations.forEach { conversation ->
                             val loaded = getMessages(conversation.threadId, includeScheduledMessages = false)
                             loaded.chunked(30).forEach { batch ->
                                 messagesDB.insertMessages(*batch.toTypedArray())
