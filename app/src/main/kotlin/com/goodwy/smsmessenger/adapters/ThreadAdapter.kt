@@ -506,8 +506,8 @@ class ThreadAdapter(
             activationDistanceRatio = 0.45f
             useHapticFeedback = activity.config.swipeVibration
 
-            messageSwipeLeftIcon.setImageResource(messageSwipeActionIcon(leftAction))
-            messageSwipeRightIcon.setImageResource(messageSwipeActionIcon(rightAction))
+            binding.messageSwipeLeftIcon.setImageResource(messageSwipeActionIcon(leftAction))
+            binding.messageSwipeRightIcon.setImageResource(messageSwipeActionIcon(rightAction))
 
             val leftEnabled = enabled && leftAction != SWIPE_ACTION_NONE
             val rightEnabled = enabled && rightAction != SWIPE_ACTION_NONE
