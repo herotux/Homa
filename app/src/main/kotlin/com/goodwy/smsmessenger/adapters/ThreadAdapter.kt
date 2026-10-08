@@ -496,31 +496,60 @@ class ThreadAdapter(
 
     private fun setupMessageSwipe(binding: ItemMessageBinding, message: Message) {
         binding.messageSwipeView.apply {
-            // Use SwipeActionView's native gesture handling instead of a raw ACTION_UP
-            // threshold. The old 96dp threshold could be larger than the actual
-            // reveal distance, making otherwise valid swipes fail intermittently.
+            val enabled = activity.config.messageSwipeEnabled
+            val leftAction = activity.config.messageSwipeLeftAction
+            val rightAction = activity.config.messageSwipeRightAction
+
             activationDistanceRatio = 0.45f
+            useHapticFeedback = activity.config.swipeVibration
+
+            messageSwipeLeftIcon.setImageResource(messageSwipeActionIcon(leftAction))
+            messageSwipeRightIcon.setImageResource(messageSwipeActionIcon(rightAction))
+
+            val leftEnabled = enabled && leftAction != SWIPE_ACTION_NONE
+            val rightEnabled = enabled && rightAction != SWIPE_ACTION_NONE
+
+            setDirectionEnabled(SwipeDirection.Left, leftEnabled)
+            setDirectionEnabled(SwipeDirection.Right, rightEnabled)
+
             swipeGestureListener = object : SwipeGestureListener {
                 override fun onSwipedLeft(swipeActionView: SwipeActionView): Boolean {
-                    MessageAnnotationDialogs.editLabels(activity, message) {
-                        notifyMessageAnnotationChanged(message.id)
-                    }
+                    if (!leftEnabled) return false
+                    performMessageSwipeAction(leftAction, message)
                     return true
                 }
 
                 override fun onSwipedRight(swipeActionView: SwipeActionView): Boolean {
-                    MessageAnnotationDialogs.editNote(activity, message) {
-                        notifyMessageAnnotationChanged(message.id)
-                    }
+                    if (!rightEnabled) return false
+                    performMessageSwipeAction(rightAction, message)
                     return true
                 }
             }
 
-            // Keep the action backgrounds visually clean; the icons are enough.
             setRippleColor(SwipeDirection.Left, -1)
             setRippleColor(SwipeDirection.Right, -1)
         }
     }
+
+    private fun messageSwipeActionIcon(action: Int): Int {
+        return when (action) {
+            SWIPE_ACTION_ADD_TAG -> R.drawable.ic_homa_add
+            SWIPE_ACTION_ADD_NOTE -> R.drawable.ic_homa_edit
+            else -> com.goodwy.commons.R.drawable.ic_close
+        }
+    }
+
+    private fun performMessageSwipeAction(action: Int, message: Message) {
+        when (action) {
+            SWIPE_ACTION_ADD_TAG -> MessageAnnotationDialogs.editLabels(activity, message) {
+                notifyMessageAnnotationChanged(message.id)
+            }
+            SWIPE_ACTION_ADD_NOTE -> MessageAnnotationDialogs.editNote(activity, message) {
+                notifyMessageAnnotationChanged(message.id)
+            }
+        }
+    }
+
     private fun setupView(holder: ViewHolder, view: View, message: Message) {
         ItemMessageBinding.bind(view).apply {
             setupMessageSwipe(this, message)
