@@ -95,6 +95,14 @@ val Context.smsSender
 
 val Context.shortcutHelper get() = ShortcutHelper(this)
 
+fun Context.getThreadMessageCount(threadId: Long): Int {
+    val selection = "${Sms.THREAD_ID} = ?"
+    val args = arrayOf(threadId.toString())
+    val smsCount = contentResolver.query(Sms.CONTENT_URI, arrayOf(Sms._ID), selection, args, null)?.use { it.count } ?: 0
+    val mmsCount = contentResolver.query(Mms.CONTENT_URI, arrayOf(Mms._ID), selection, args, null)?.use { it.count } ?: 0
+    return smsCount + mmsCount
+}
+
 fun Context.getMessages(
     threadId: Long,
     dateFrom: Int = -1,
