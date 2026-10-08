@@ -265,19 +265,17 @@ class BankCardPickerItem @JvmOverloads constructor(
     }
 
     private fun insertCard(activity: Activity, card: BankCard) {
-        val message = (activity.currentFocus as? EditText) ?: return
+        // Do not rely on currentFocus: opening the card picker can move focus to the picker itself.
+        // Resolve the actual composer field directly so the selected card is always inserted into the draft.
+        val message = activity.findViewById<EditText>(R.id.threadTypeMessage) ?: return
         val bankName = card.visual?.persianName ?: card.bankId
         val cardNumber = repo.formatCard(card.cardNumber)
 
         val selectedText = if (isPersian()) {
             buildString {
-                append("بانک: ").append(bankName)
-                append("\nشماره کارت:\n").append(cardNumber)
+                append("شماره کارت: ").append(cardNumber)
                 if (card.holderName.isNotBlank()) {
                     append("\nصاحب کارت: ").append(card.holderName)
-                }
-                if (card.iban.isNotBlank()) {
-                    append("\nشماره شبا: ").append(repo.formatIban(card.iban))
                 }
             }
         } else {
