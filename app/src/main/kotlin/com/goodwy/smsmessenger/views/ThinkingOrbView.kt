@@ -54,6 +54,15 @@ class ThinkingOrbView(context: Context) : View(context) {
         }
     }
 
+    fun pauseAnimation() {
+        if (animator.isStarted) animator.pause()
+    }
+
+    fun resumeAnimation() {
+        if (!ValueAnimator.areAnimatorsEnabled()) return
+        if (animator.isStarted) animator.resume() else animator.start()
+    }
+
     override fun onDetachedFromWindow() {
         animator.cancel()
         super.onDetachedFromWindow()
