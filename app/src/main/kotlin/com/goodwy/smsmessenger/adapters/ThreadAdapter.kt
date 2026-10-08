@@ -72,8 +72,6 @@ import com.goodwy.commons.helpers.FontHelper
 import com.goodwy.commons.helpers.TEXT_ALIGNMENT_ALONG_EDGES
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
-import me.thanel.swipeactionview.SwipeActionView
-import me.thanel.swipeactionview.SwipeGestureListener
 import com.goodwy.smsmessenger.R
 import com.goodwy.smsmessenger.activities.NewConversationActivity
 import com.goodwy.smsmessenger.activities.SimpleActivity
@@ -494,26 +492,39 @@ class ThreadAdapter(
     }
 
     private fun setupMessageSwipe(binding: ItemMessageBinding, message: Message) {
-        binding.messageSwipeView.setSwipeGestureListener(object : SwipeGestureListener {
-            override fun onSwipedLeft(swipeActionView: SwipeActionView): Boolean {
-                MessageAnnotationDialogs.editLabels(activity, message) {
-                    notifyMessageAnnotationChanged(message.id)
-                }
-                return true
-            }
+        var downX = 0f
+        var downY = 0f
+        val threshold = dp(96)
 
-            override fun onSwipedRight(swipeActionView: SwipeActionView): Boolean {
-                MessageAnnotationDialogs.editNote(activity, message) {
-                    notifyMessageAnnotationChanged(message.id)
+        binding.messageSwipeView.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.rawX
+                    downY = event.rawY
+                    false
                 }
-                return true
-            }
-        })
 
-        binding.messageSwipeView.setRippleColor(SwipeActionView.SwipeDirection.Left, -1)
-        binding.messageSwipeView.setRippleColor(SwipeActionView.SwipeDirection.Right, -1)
+                MotionEvent.ACTION_UP -> {
+                    val dx = event.rawX - downX
+                    val dy = event.rawY - downY
+                    if (kotlin.math.abs(dx) >= threshold && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.2f) {
+                        if (dx < 0) {
+                            MessageAnnotationDialogs.editLabels(activity, message) {
+                                notifyMessageAnnotationChanged(message.id)
+                            }
+                        } else {
+                            MessageAnnotationDialogs.editNote(activity, message) {
+                                notifyMessageAnnotationChanged(message.id)
+                            }
+                        }
+                    }
+                    false
+                }
+
+                else -> false
+            }
+        }
     }
-
     @SuppressLint("ClickableViewAccessibility")
     private fun setupView(holder: ViewHolder, view: View, message: Message) {
         ItemMessageBinding.bind(view).apply {
