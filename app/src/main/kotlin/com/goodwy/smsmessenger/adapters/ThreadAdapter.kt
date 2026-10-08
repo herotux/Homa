@@ -115,6 +115,9 @@ import com.goodwy.smsmessenger.helpers.BUBBLE_STYLE_IOS
 import com.goodwy.smsmessenger.helpers.BUBBLE_STYLE_IOS_NEW
 import com.goodwy.smsmessenger.helpers.BUBBLE_STYLE_ROUNDED
 import com.goodwy.smsmessenger.helpers.EXTRA_VCARD_URI
+import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_ADD_NOTE
+import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_ADD_TAG
+import com.goodwy.smsmessenger.helpers.SWIPE_ACTION_NONE
 import com.goodwy.smsmessenger.helpers.THREAD_DATE_TIME
 import com.goodwy.smsmessenger.helpers.THREAD_RECEIVED_MESSAGE
 import com.goodwy.smsmessenger.helpers.THREAD_SENT_MESSAGE
