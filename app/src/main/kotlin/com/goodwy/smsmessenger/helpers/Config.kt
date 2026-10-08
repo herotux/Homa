@@ -215,4 +215,16 @@ class Config(context: Context) : BaseConfig(context) {
     var swipeRipple: Boolean
         get() = prefs.getBoolean(SWIPE_RIPPLE, false)
         set(swipeRipple) = prefs.edit { putBoolean(SWIPE_RIPPLE, swipeRipple) }
+
+    var messageSwipeEnabled: Boolean
+        get() = prefs.getBoolean(MESSAGE_SWIPE_ENABLED, true)
+        set(value) = prefs.edit { putBoolean(MESSAGE_SWIPE_ENABLED, value) }
+
+    var messageSwipeRightAction: Int
+        get() = prefs.getInt(MESSAGE_SWIPE_RIGHT_ACTION, SWIPE_ACTION_ADD_TAG)
+        set(value) = prefs.edit { putInt(MESSAGE_SWIPE_RIGHT_ACTION, value) }
+
+    var messageSwipeLeftAction: Int
+        get() = prefs.getInt(MESSAGE_SWIPE_LEFT_ACTION, SWIPE_ACTION_ADD_NOTE)
+        set(value) = prefs.edit { putInt(MESSAGE_SWIPE_LEFT_ACTION, value) }
 }
