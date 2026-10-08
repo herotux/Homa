@@ -118,6 +118,15 @@ android {
         includeInApk = false
     }
 
+    // Keep native libraries compressed in the standalone APK.
+    // This avoids install/runtime issues on Android devices using 16 KB pages
+    // when a prebuilt native dependency is not ZIP-aligned for 16 KB.
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     androidResources {
         @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
