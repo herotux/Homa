@@ -10,6 +10,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import com.goodwy.commons.activities.BaseSimpleActivity
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -78,7 +79,7 @@ object HomaTagNoteDialogs {
                 setEnsureMinTouchTargetSize(false)
                 setOnCloseIconClickListener { chipGroup.removeView(this) }
                 chipBackgroundColor = ColorStateList.valueOf(
-                    ContextCompat.getColor(activity, R.color.color_primary)
+                    activity.getProperPrimaryColor()
                 )
                 setTextColor(ContextCompat.getColor(activity, android.R.color.white))
             }
