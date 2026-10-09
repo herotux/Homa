@@ -84,6 +84,24 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
           echo "APK signature and alignment checks passed."
 
+      # Signature and ZIP alignment checks do not prove Android's package
+      # manager can install the APK. Exercise the actual install path too.
+      - name: Install APK on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            APK="$(find app/build/outputs/apk/foss/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+            test -s "$APK"
+            adb install "$APK"
+            adb shell pm path com.goodwy.smsmessenger.debug
+            echo "Android package manager installed the Homa FOSS debug APK successfully."
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
