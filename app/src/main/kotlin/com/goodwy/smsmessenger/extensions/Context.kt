@@ -389,6 +389,7 @@ fun Context.getMMSSender(msgId: Long): String {
 fun Context.getConversations(
     threadId: Long? = null,
     privateContacts: ArrayList<SimpleContact> = ArrayList(),
+    onConversationLoaded: ((Conversation) -> Unit)? = null,
 //    limit: Int = 50,
 //    offset: Int = 0,
 ): ArrayList<Conversation> {
@@ -515,6 +516,7 @@ fun Context.getConversations(
                     isBlocked = isBlocked
                 )
                 conversations.add(conversation)
+                onConversationLoaded?.invoke(conversation)
             }
         }
     } catch (sqliteException: SQLiteException) {
@@ -523,7 +525,7 @@ fun Context.getConversations(
             && archiveAvailable
         ) {
             config.isArchiveAvailable = false
-            return getConversations(threadId, privateContacts)
+            return getConversations(threadId, privateContacts, onConversationLoaded)
         } else {
             showErrorToast(sqliteException)
         }
