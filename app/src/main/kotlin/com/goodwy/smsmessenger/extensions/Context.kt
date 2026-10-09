@@ -108,6 +108,7 @@ fun Context.getMessages(
     dateFrom: Int = -1,
     includeScheduledMessages: Boolean = true,
     limit: Int = MESSAGES_LIMIT,
+    onMessageLoaded: (() -> Unit)? = null,
 ): ArrayList<Message> {
     val uri = Sms.CONTENT_URI
     val projection = arrayOf(
@@ -226,9 +227,10 @@ fun Context.getMessages(
                 subscriptionId = subscriptionId
             )
         messages.add(message)
+        onMessageLoaded?.invoke()
     }
 
-    messages.addAll(getMMS(threadId, sortOrder, dateFrom))
+    messages.addAll(getMMS(threadId, sortOrder, dateFrom, onMessageLoaded))
 
     if (includeScheduledMessages) {
         try {
@@ -254,6 +256,7 @@ fun Context.getMMS(
     threadId: Long? = null,
     sortOrder: String? = null,
     dateFrom: Int = -1,
+    onMessageLoaded: (() -> Unit)? = null,
 ): ArrayList<Message> {
     val uri = Mms.CONTENT_URI
     val projection = arrayOf(
@@ -324,6 +327,7 @@ fun Context.getMMS(
                 subscriptionId = subscriptionId
             )
         messages.add(message)
+        onMessageLoaded?.invoke()
 
         participants.forEach {
             contactsMap[it.rawId] = it
