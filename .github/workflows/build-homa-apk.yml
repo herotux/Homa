@@ -34,6 +34,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Android SDK build tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools for APK verification
+        run: sdkmanager "build-tools;35.0.0"
+
       - name: Publish Homa-Commons strings to Maven Local
         working-directory: homa-commons
         run: ./gradlew :strings:publishReleasePublicationToMavenLocal -PVERSION=23bb4a7bf685ffa61c8df815db6467cb926f071a --stacktrace --no-daemon
@@ -69,8 +75,8 @@ jobs:
           test -n "$APK"
           test -s "$APK"
           echo "Checking APK: $APK"
-          apksigner verify --verbose --print-certs "$APK"
-          zipalign -c -P 16 -v 4 "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
           echo "APK signature and alignment checks passed."
 
       - name: Upload APK
