@@ -519,16 +519,14 @@ class MainActivity : SimpleActivity() {
                 }
                 if (initialMessageLoaderShown) {
                     conversations.forEach { conversation ->
-                            val loaded = getMessages(conversation.threadId, includeScheduledMessages = false)
-                            loaded.chunked(30).forEach { batch ->
-                                messagesDB.insertMessages(*batch.toTypedArray())
-                                initialMessageLoadingLoaded += batch.size
-                                updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
-                            }
+                        val loaded = getMessages(conversation.threadId, includeScheduledMessages = false)
+                        loaded.chunked(30).forEach { batch ->
+                            messagesDB.insertMessages(*batch.toTypedArray())
+                            initialMessageLoadingLoaded += batch.size
+                            updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
                         }
-
-                        updateInitialMessageLoadingProgress(initialMessageLoadingTotal)
                     }
+                    updateInitialMessageLoadingProgress(initialMessageLoadingTotal)
                 }
             } catch (e: Exception) {
                 HomaDiagnostics.error("MAIN_REFRESH_FAILED", e)
