@@ -519,11 +519,19 @@ class MainActivity : SimpleActivity() {
                 }
                 if (initialMessageLoaderShown) {
                     conversations.forEach { conversation ->
-                        val loaded = getMessages(conversation.threadId, includeScheduledMessages = false)
+                        val loaded = getMessages(
+                            conversation.threadId,
+                            includeScheduledMessages = false,
+                            onMessageLoaded = {
+                                initialMessageLoadingLoaded++
+                                // Throttle UI updates so a large inbox does not flood the main thread.
+                                if (initialMessageLoadingLoaded % 10 == 0) {
+                                    updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
+                                }
+                            }
+                        )
                         loaded.chunked(30).forEach { batch ->
                             messagesDB.insertMessages(*batch.toTypedArray())
-                            initialMessageLoadingLoaded += batch.size
-                            updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
                         }
                     }
                     updateInitialMessageLoadingProgress(initialMessageLoadingTotal)
