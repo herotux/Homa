@@ -34,9 +34,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK build tools
-        uses: android-actions/setup-android@v3
-
       - name: Install Android build tools for APK verification
         run: sdkmanager "build-tools;35.0.0"
 
