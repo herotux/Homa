@@ -35,7 +35,15 @@ jobs:
           java-version: '17'
 
       - name: Install Android build tools for APK verification
-        run: sdkmanager "build-tools;35.0.0"
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" "build-tools;35.0.0"
 
       - name: Publish Homa-Commons strings to Maven Local
         working-directory: homa-commons
