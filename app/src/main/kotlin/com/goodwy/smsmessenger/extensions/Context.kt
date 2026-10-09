@@ -433,7 +433,9 @@ fun Context.getConversations(
 //            if (snippet.isEmpty()) {
 //                snippet = getThreadSnippet(id)
 //            }
-                val snippet = getThreadSnippet(id)
+                // The Threads provider already supplies the latest snippet. Avoid a per-thread
+                // SMS + MMS query here; thousands of nested provider queries delayed initial loading.
+                val snippet = cursor.getStringValue(Threads.SNIPPET).orEmpty().ifBlank { getThreadSnippet(id) }
 
                 var date = cursor.getLongValue(Threads.DATE)
                 if (date.toString().length > 10) {
