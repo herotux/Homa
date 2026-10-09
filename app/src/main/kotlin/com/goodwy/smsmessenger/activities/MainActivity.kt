@@ -483,7 +483,30 @@ class MainActivity : SimpleActivity() {
 
                 val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
                 HomaDiagnostics.log("MAIN_CONTACTS_READY", "token=" + token + " contacts=" + privateContacts.size)
-                val conversations = getConversations(privateContacts = privateContacts)
+                val conversations = getConversations(
+                    privateContacts = privateContacts,
+                    onConversationLoaded = { conversation ->
+                        if (initialMessageLoaderShown) {
+                            // Import each thread as soon as the Android provider exposes it.
+                            // This couples the visible progress to the same pass that builds
+                            // the conversation list instead of waiting for that pass to finish.
+                            val loaded = getMessages(
+                                conversation.threadId,
+                                includeScheduledMessages = false,
+                                limit = Int.MAX_VALUE,
+                                onMessageLoaded = {
+                                    initialMessageLoadingLoaded++
+                                    if (initialMessageLoadingLoaded % 10 == 0) {
+                                        updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
+                                    }
+                                }
+                            )
+                            loaded.chunked(30).forEach { batch ->
+                                messagesDB.insertMessages(*batch.toTypedArray())
+                            }
+                        }
+                    }
+                )
                 HomaDiagnostics.log("MAIN_PROVIDER_READY", "token=" + token + " conversations=" + conversations.size + " durationMs=" + ((System.nanoTime() - started) / 1_000_000))
                 conversations.forEach { cloned ->
                     if (cachedConversations.none { it.threadId == cloned.threadId }) {
@@ -518,23 +541,7 @@ class MainActivity : SimpleActivity() {
                     setupConversations(allConversations)
                 }
                 if (initialMessageLoaderShown) {
-                    conversations.forEach { conversation ->
-                        val loaded = getMessages(
-                            conversation.threadId,
-                            includeScheduledMessages = false,
-                            onMessageLoaded = {
-                                initialMessageLoadingLoaded++
-                                // Throttle UI updates so a large inbox does not flood the main thread.
-                                if (initialMessageLoadingLoaded % 10 == 0) {
-                                    updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
-                                }
-                            }
-                        )
-                        loaded.chunked(30).forEach { batch ->
-                            messagesDB.insertMessages(*batch.toTypedArray())
-                        }
-                    }
-                    updateInitialMessageLoadingProgress(initialMessageLoadingTotal)
+                    updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
                 }
             } catch (e: Exception) {
                 HomaDiagnostics.error("MAIN_REFRESH_FAILED", e)
