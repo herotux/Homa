@@ -84,6 +84,15 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
           echo "APK signature and alignment checks passed."
 
+      # Preserve the built APK even if the emulator infrastructure is unstable.
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homa-FOSS-debug
+          path: app/build/outputs/apk/foss/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
       # Signature and ZIP alignment checks do not prove Android's package
       # manager can install the APK. Exercise the actual install path too.
       - name: Install APK on Android emulator
@@ -101,11 +110,3 @@ jobs:
             adb install "$APK"
             adb shell pm path com.goodwy.smsmessenger.debug
             echo "Android package manager installed the Homa FOSS debug APK successfully."
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Homa-FOSS-debug
-          path: app/build/outputs/apk/foss/debug/*.apk
-          if-no-files-found: error
-          retention-days: 14
