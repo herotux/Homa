@@ -419,12 +419,26 @@ class ThreadActivity : SimpleActivity() {
             val cachedMessagesCode = messages.clone().hashCode()
 
             if (!isRecycleBin) {
-                val refreshStarted = System.nanoTime()
-                messages = getMessages(threadId)
-                HomaDiagnostics.log("THREAD_PROVIDER_REFRESH", "threadId=" + threadId + " messages=" + messages.size + " durationMs=" + ((System.nanoTime() - refreshStarted) / 1_000_000))
-                if (config.useRecycleBin) {
-                    val recycledMessages = messagesDB.getThreadMessagesFromRecycleBin(threadId)
-                    messages = messages.filterNotInByKey(recycledMessages) { it.getStableId() }
+                // The Room cache has already been loaded and submitted to the adapter.
+                // Avoid rescanning the entire SMS/MMS provider on every quick re-entry.
+                // Incoming messages still trigger Events.RefreshMessages and force a refresh.
+                val refreshPrefs = getSharedPreferences("homa_thread_provider_refresh", MODE_PRIVATE)
+                val refreshKey = "thread_$threadId"
+                val now = System.currentTimeMillis()
+                val lastProviderRefresh = refreshPrefs.getLong(refreshKey, 0L)
+                val shouldRefreshProvider = messages.isEmpty() || now - lastProviderRefresh >= 60_000L
+
+                if (shouldRefreshProvider) {
+                    val refreshStarted = System.nanoTime()
+                    messages = getMessages(threadId)
+                    refreshPrefs.edit().putLong(refreshKey, System.currentTimeMillis()).apply()
+                    HomaDiagnostics.log("THREAD_PROVIDER_REFRESH", "threadId=" + threadId + " messages=" + messages.size + " durationMs=" + ((System.nanoTime() - refreshStarted) / 1_000_000))
+                    if (config.useRecycleBin) {
+                        val recycledMessages = messagesDB.getThreadMessagesFromRecycleBin(threadId)
+                        messages = messages.filterNotInByKey(recycledMessages) { it.getStableId() }
+                    }
+                } else {
+                    HomaDiagnostics.log("THREAD_PROVIDER_REFRESH_SKIPPED", "threadId=" + threadId + " reason=recent_provider_cache cachedMessages=" + messages.size)
                 }
             }
 
