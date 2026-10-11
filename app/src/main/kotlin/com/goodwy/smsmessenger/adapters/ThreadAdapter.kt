@@ -706,15 +706,16 @@ class ThreadAdapter(
                 topMargin = dp(5)
             })
         }
+        val previewCard = card ?: return
         val divarUrl = DIVAR_LINK_REGEX.find(message.body)?.value?.trimEnd('.', ',', ')', ']', '}', '،', ';')
-        card.visibility = if (divarUrl == null) View.GONE else View.VISIBLE
+        previewCard.visibility = if (divarUrl == null) View.GONE else View.VISIBLE
         if (divarUrl == null) return
-        val titleView = card.findViewWithTag<TextView>("title")
-        val descriptionView = card.findViewWithTag<TextView>("description")
-        val priceView = card.findViewWithTag<TextView>("price")
-        card.setOnClickListener {
+        val titleView = previewCard.findViewWithTag<TextView>("title")
+        val descriptionView = previewCard.findViewWithTag<TextView>("description")
+        val priceView = previewCard.findViewWithTag<TextView>("price")
+        previewCard.setOnClickListener {
             try { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(divarUrl))) }
-            catch (_: Exception) { activity.showErrorToast(com.goodwy.commons.R.string.no_app_found) }
+            catch (_: Exception) { Toast.makeText(activity, "امکان باز کردن لینک وجود ندارد", Toast.LENGTH_SHORT).show() }
         }
         val cached = DivarPreviewLoader.cache[divarUrl]
         if (cached != null) {
@@ -726,13 +727,13 @@ class ThreadAdapter(
             DivarPreviewLoader.load(divarUrl) { result ->
                 if (activity.isDestroyed || activity.isFinishing) return@load
                 activity.runOnUiThread {
-                    if (card.visibility == View.VISIBLE && DIVAR_LINK_REGEX.find(message.body)?.value?.trimEnd('.', ',', ')', ']', '}', '،', ';') == divarUrl) {
+                    if (previewCard.visibility == View.VISIBLE && DIVAR_LINK_REGEX.find(message.body)?.value?.trimEnd('.', ',', ')', ']', '}', '،', ';') == divarUrl) {
                         renderDivarPreview(result, titleView, descriptionView, priceView)
                         val annotations = wrapper.findViewWithTag<View>("homa_annotations")
                         val lp = annotations?.layoutParams as? RelativeLayout.LayoutParams
                         if (lp != null) {
                             lp.removeRule(RelativeLayout.BELOW)
-                            lp.addRule(RelativeLayout.BELOW, card.id)
+                            lp.addRule(RelativeLayout.BELOW, previewCard.id)
                             annotations.layoutParams = lp
                         }
                     }
