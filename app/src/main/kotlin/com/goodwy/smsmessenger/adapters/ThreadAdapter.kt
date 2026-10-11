@@ -137,6 +137,11 @@ import com.goodwy.smsmessenger.models.ThreadItem.ThreadError
 import com.goodwy.smsmessenger.models.ThreadItem.ThreadSending
 import com.goodwy.smsmessenger.models.ThreadItem.ThreadSent
 import java.util.Locale
+import android.graphics.drawable.GradientDrawable
+import android.text.Html
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import org.joda.time.DateTime
 
@@ -643,8 +648,107 @@ class ThreadAdapter(
                 threadMessagePlayOutline.beGone()
             }
         }
-        setupAnnotations(holder, ItemMessageBinding.bind(view), message)
+        val messageBinding = ItemMessageBinding.bind(view)
+        setupDivarPreview(messageBinding, message)
+        setupAnnotations(holder, messageBinding, message)
     }
+
+    private fun setupDivarPreview(binding: ItemMessageBinding, message: Message) {
+        val wrapper = binding.threadMessageWrapper
+        val tag = "homa_divar_preview"
+        var card = wrapper.findViewWithTag<LinearLayout>(tag)
+        if (card == null) {
+            card = LinearLayout(activity).apply {
+                this.tag = tag
+                id = View.generateViewId()
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(12), dp(10), dp(12), dp(10))
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(12).toFloat()
+                    setColor(activity.getSurfaceColor())
+                    val color = activity.getProperPrimaryColor()
+                    setStroke(dp(1), android.graphics.Color.argb(45, android.graphics.Color.red(color), android.graphics.Color.green(color), android.graphics.Color.blue(color)))
+                }
+                elevation = dp(1).toFloat()
+                isClickable = true
+                isFocusable = true
+            }
+            val titleView = TextView(activity).apply {
+                tag = "title"
+                setTextColor(activity.getProperTextColor())
+                textSize = 14f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                maxLines = 2
+            }
+            val descriptionView = TextView(activity).apply {
+                tag = "description"
+                setTextColor(activity.getProperTextColor())
+                alpha = 0.82f
+                textSize = 12f
+                maxLines = 3
+                setPadding(0, dp(4), 0, 0)
+            }
+            val priceView = TextView(activity).apply {
+                tag = "price"
+                setTextColor(activity.getProperPrimaryColor())
+                textSize = 13f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setPadding(0, dp(6), 0, 0)
+            }
+            card.addView(titleView, LinearLayout.LayoutParams(-1, -2))
+            card.addView(descriptionView, LinearLayout.LayoutParams(-1, -2))
+            card.addView(priceView, LinearLayout.LayoutParams(-1, -2))
+            wrapper.addView(card, RelativeLayout.LayoutParams(-1, -2).apply {
+                addRule(RelativeLayout.BELOW, binding.threadMessageBodyWrapper.id)
+                addRule(RelativeLayout.ALIGN_PARENT_START)
+                addRule(RelativeLayout.ALIGN_PARENT_END)
+                topMargin = dp(5)
+            })
+        }
+        val divarUrl = DIVAR_LINK_REGEX.find(message.body)?.value?.trimEnd('.', ',', ')', ']', '}', '،', ';')
+        card.visibility = if (divarUrl == null) View.GONE else View.VISIBLE
+        if (divarUrl == null) return
+        val titleView = card.findViewWithTag<TextView>("title")
+        val descriptionView = card.findViewWithTag<TextView>("description")
+        val priceView = card.findViewWithTag<TextView>("price")
+        card.setOnClickListener {
+            try { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(divarUrl))) }
+            catch (_: Exception) { activity.showErrorToast(com.goodwy.commons.R.string.no_app_found) }
+        }
+        val cached = DivarPreviewLoader.cache[divarUrl]
+        if (cached != null) {
+            renderDivarPreview(cached, titleView, descriptionView, priceView)
+        } else {
+            titleView.text = "در حال دریافت اطلاعات آگهی دیوار…"
+            descriptionView.text = ""
+            priceView.text = ""
+            DivarPreviewLoader.load(divarUrl) { result ->
+                if (activity.isDestroyed || activity.isFinishing) return@load
+                activity.runOnUiThread {
+                    if (card.visibility == View.VISIBLE && DIVAR_LINK_REGEX.find(message.body)?.value?.trimEnd('.', ',', ')', ']', '}', '،', ';') == divarUrl) {
+                        renderDivarPreview(result, titleView, descriptionView, priceView)
+                        val annotations = wrapper.findViewWithTag<View>("homa_annotations")
+                        val lp = annotations?.layoutParams as? RelativeLayout.LayoutParams
+                        if (lp != null) {
+                            lp.removeRule(RelativeLayout.BELOW)
+                            lp.addRule(RelativeLayout.BELOW, card.id)
+                            annotations.layoutParams = lp
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun renderDivarPreview(preview: DivarPreviewLoader.Preview, title: TextView, description: TextView, price: TextView) {
+        title.text = preview.title.ifBlank { "آگهی دیوار" }
+        description.text = preview.description
+        description.visibility = if (preview.description.isBlank()) View.GONE else View.VISIBLE
+        price.text = preview.price
+        price.visibility = if (preview.price.isBlank()) View.GONE else View.VISIBLE
+    }
+
     private fun setupAnnotations(holder: ViewHolder, binding: ItemMessageBinding, message: Message) {
         val wrapper = binding.threadMessageWrapper
         val tag = "homa_annotations"
@@ -657,6 +761,12 @@ class ThreadAdapter(
                 addRule(RelativeLayout.ALIGN_END, binding.threadMessageBodyWrapper.id)
                 topMargin = (2 * activity.resources.displayMetrics.density).toInt()
             })
+        }
+        (annotations.layoutParams as? RelativeLayout.LayoutParams)?.let { params ->
+            params.removeRule(RelativeLayout.BELOW)
+            val preview = wrapper.findViewWithTag<View>("homa_divar_preview")
+            params.addRule(RelativeLayout.BELOW, if (preview?.visibility == View.VISIBLE) preview.id else binding.threadMessageBodyWrapper.id)
+            annotations.layoutParams = params
         }
         annotations.render(emptyList(), null)
         ensureBackgroundThread {
@@ -1183,6 +1293,70 @@ class ThreadAdapter(
     private fun dp(value: Int): Int = (value * activity.resources.displayMetrics.density).toInt()
 
     inner class ThreadViewHolder(val binding: ViewBinding) : ViewHolder(binding.root)
+}
+
+private val DIVAR_LINK_REGEX = Regex("https?://(?:www\\.)?divar\\.ir/v/[A-Za-z0-9_-]+(?:\\?[^\\s<>]*)?", RegexOption.IGNORE_CASE)
+
+private object DivarPreviewLoader {
+    data class Preview(val title: String, val description: String, val price: String)
+    val cache = ConcurrentHashMap<String, Preview>()
+    private val inFlight = ConcurrentHashMap<String, Boolean>()
+    private val listeners = ConcurrentHashMap<String, MutableList<(Preview) -> Unit>>()
+
+    fun load(url: String, callback: (Preview) -> Unit) {
+        cache[url]?.let { callback(it); return }
+        synchronized(listeners) {
+            listeners.getOrPut(url) { mutableListOf() }.add(callback)
+            if (inFlight.putIfAbsent(url, true) != null) return
+        }
+        Thread {
+            val result = try { fetch(url) } catch (_: Exception) { Preview("آگهی دیوار", "برای مشاهده جزئیات، کارت را لمس کنید.", "") }
+            cache[url] = result
+            val callbacks = synchronized(listeners) { listeners.remove(url)?.toList().orEmpty() }
+            inFlight.remove(url)
+            callbacks.forEach { listener -> try { listener(result) } catch (_: Exception) { } }
+        }.apply { name = "DivarPreviewLoader"; isDaemon = true }.start()
+    }
+
+    private fun fetch(url: String): Preview {
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.connectTimeout = 7000
+        connection.readTimeout = 7000
+        connection.instanceFollowRedirects = true
+        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124.0 Mobile Safari/537.36")
+        connection.setRequestProperty("Accept-Language", "fa-IR,fa;q=0.9,en;q=0.7")
+        try {
+            val html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText().take(2500000) }
+            fun meta(vararg keys: String): String {
+                for (key in keys) {
+                    val escapedKey = Regex.escape(key)
+                    val patterns = listOf(
+                        Regex("<meta[^>]+(?:property|name)=[\\\"']" + escapedKey + "[\\\"'][^>]+content=[\\\"']([^\\\"']*)[\\\"']", RegexOption.IGNORE_CASE),
+                        Regex("<meta[^>]+content=[\\\"']([^\\\"']*)[\\\"'][^>]+(?:property|name)=[\\\"']" + escapedKey + "[\\\"']", RegexOption.IGNORE_CASE)
+                    )
+                    for (pattern in patterns) pattern.find(html)?.groupValues?.getOrNull(1)?.let { return decode(it) }
+                }
+                return ""
+            }
+            val title = meta("og:title", "twitter:title").ifBlank {
+                Regex("<title[^>]*>(.*?)</title>", RegexOption.IGNORE_CASE or RegexOption.DOT_MATCHES_ALL).find(html)?.groupValues?.getOrNull(1)?.let(::decode).orEmpty()
+            }.replace(Regex("\\s*[|–-]\\s*دیوار.*$"), "").trim()
+            val description = meta("og:description", "description", "twitter:description")
+            val price = sequenceOf(
+                Regex("\\\"priceText\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"", RegexOption.IGNORE_CASE),
+                Regex("\\\"price\\\"\\s*:\\s*\\{[^}]{0,300}?\\\"value\\\"\\s*:\\s*(\\d+)", RegexOption.IGNORE_CASE),
+                Regex("\\\"price\\\"\\s*:\\s*\\\"?(\\d{4,})\\\"?", RegexOption.IGNORE_CASE)
+            ).mapNotNull { it.find(html)?.groupValues?.getOrNull(1) }.firstOrNull()?.let { raw ->
+                if (raw.any { it.isLetter() }) raw else raw.toLongOrNull()?.let { String.format(Locale.US, "%,d تومان", it) } ?: raw
+            }.orEmpty()
+            return Preview(title, description, price)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun decode(value: String): String = Html.fromHtml(value, Html.FROM_HTML_MODE_LEGACY).toString()
+        .replace("\\u200c", " ").replace(Regex("\\s+"), " ").trim()
 }
 
 private class ThreadItemDiffCallback : DiffUtil.ItemCallback<ThreadItem>() {
