@@ -1956,6 +1956,8 @@ class ThreadActivity : SimpleActivity() {
         val lastMaxId = messages.filterNot { it.isScheduled }.maxByOrNull { it.id }?.id ?: 0L
         val newThreadId = getThreadId(participants.getAddresses().toSet())
         val newMessages = getMessages(newThreadId, includeScheduledMessages = false)
+        getSharedPreferences("homa_thread_provider_refresh", MODE_PRIVATE)
+            .edit().putLong("thread_$newThreadId", System.currentTimeMillis()).apply()
 
         if (messages.isNotEmpty() && messages.all { it.isScheduled } && newMessages.isNotEmpty()) {
             // update scheduled messages with real thread id
