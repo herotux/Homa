@@ -18,6 +18,7 @@ import android.util.TypedValue
 import android.view.*
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
 import android.widget.RelativeLayout
 import androidx.appcompat.content.res.AppCompatResources
@@ -675,14 +676,14 @@ class ThreadAdapter(
                 isFocusable = true
             }
             val titleView = TextView(activity).apply {
-                tag = "title"
+                this.tag = "title"
                 setTextColor(activity.getProperTextColor())
                 textSize = 14f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 maxLines = 2
             }
             val descriptionView = TextView(activity).apply {
-                tag = "description"
+                this.tag = "description"
                 setTextColor(activity.getProperTextColor())
                 alpha = 0.82f
                 textSize = 12f
@@ -690,7 +691,7 @@ class ThreadAdapter(
                 setPadding(0, dp(4), 0, 0)
             }
             val priceView = TextView(activity).apply {
-                tag = "price"
+                this.tag = "price"
                 setTextColor(activity.getProperPrimaryColor())
                 textSize = 13f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
@@ -714,7 +715,7 @@ class ThreadAdapter(
         val descriptionView = previewCard.findViewWithTag<TextView>("description")
         val priceView = previewCard.findViewWithTag<TextView>("price")
         previewCard.setOnClickListener {
-            try { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(divarUrl))) }
+            try { activity.startActivity(Intent(Intent.ACTION_VIEW, divarUrl.toUri())) }
             catch (_: Exception) { Toast.makeText(activity, "امکان باز کردن لینک وجود ندارد", Toast.LENGTH_SHORT).show() }
         }
         val cached = DivarPreviewLoader.cache[divarUrl]
@@ -1340,7 +1341,7 @@ private object DivarPreviewLoader {
                 return ""
             }
             val title = meta("og:title", "twitter:title").ifBlank {
-                Regex("<title[^>]*>(.*?)</title>", RegexOption.IGNORE_CASE or RegexOption.DOT_MATCHES_ALL).find(html)?.groupValues?.getOrNull(1)?.let(::decode).orEmpty()
+                Regex("<title[^>]*>(.*?)</title>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(html)?.groupValues?.getOrNull(1)?.let(::decode).orEmpty()
             }.replace(Regex("\\s*[|–-]\\s*دیوار.*$"), "").trim()
             val description = meta("og:description", "description", "twitter:description")
             val price = sequenceOf(
