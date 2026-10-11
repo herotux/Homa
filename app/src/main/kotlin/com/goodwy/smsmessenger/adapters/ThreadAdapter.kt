@@ -741,7 +741,7 @@ class ThreadAdapter(
             descriptionView.text = ""
             priceView.text = ""
             imageView.visibility = View.GONE
-            LinkPreviewLoader.load(link) { result ->
+            LinkPreviewLoader.load(activity, link) { result ->
                 if (activity.isDestroyed || activity.isFinishing) return@load
                 activity.runOnUiThread {
                     val currentLink = LINK_REGEX.find(message.body)?.value?.trimEnd('.', ',', ')', ']', '}', '،', ';', '!')
@@ -1326,12 +1326,44 @@ private val DIVAR_LINK_REGEX = Regex("https?://(?:www\\.)?divar\\.ir/v/[A-Za-z0-
 
 private object LinkPreviewLoader {
     data class Preview(val title: String, val description: String, val price: String, val imageUrl: String)
+    private const val PREFS_NAME = "homa_link_previews_v2"
+    private const val CACHE_PREFIX = "preview:"
     val cache = ConcurrentHashMap<String, Preview>()
     private val inFlight = ConcurrentHashMap<String, Boolean>()
     private val listeners = ConcurrentHashMap<String, MutableList<(Preview) -> Unit>>()
 
-    fun load(url: String, callback: (Preview) -> Unit) {
+    private fun readPersistentCache(context: Context, url: String): Preview? = try {
+        val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(CACHE_PREFIX + url, null) ?: return null
+        val json = org.json.JSONObject(raw)
+        Preview(
+            title = json.optString("title", hostName(url)),
+            description = json.optString("description", ""),
+            price = json.optString("price", ""),
+            imageUrl = json.optString("imageUrl", "")
+        )
+    } catch (_: Exception) { null }
+
+    private fun writePersistentCache(context: Context, url: String, preview: Preview) {
+        try {
+            val json = org.json.JSONObject().apply {
+                put("title", preview.title)
+                put("description", preview.description)
+                put("price", preview.price)
+                put("imageUrl", preview.imageUrl)
+            }
+            context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putString(CACHE_PREFIX + url, json.toString()).apply()
+        } catch (_: Exception) { }
+    }
+
+    fun load(context: Context, url: String, callback: (Preview) -> Unit) {
         cache[url]?.let { callback(it); return }
+        readPersistentCache(context.applicationContext, url)?.let {
+            cache[url] = it
+            callback(it)
+            return
+        }
         synchronized(listeners) {
             listeners.getOrPut(url) { mutableListOf() }.add(callback)
             if (inFlight.putIfAbsent(url, true) != null) return
@@ -1344,6 +1376,7 @@ private object LinkPreviewLoader {
                 Preview(hostName(url), "", "", "")
             }
             cache[url] = result
+            writePersistentCache(context.applicationContext, url, result)
             val callbacks = synchronized(listeners) { listeners.remove(url)?.toList().orEmpty() }
             inFlight.remove(url)
             callbacks.forEach { listener -> try { listener(result) } catch (_: Exception) { } }
@@ -1397,7 +1430,12 @@ private object LinkPreviewLoader {
                                 if (subtitle.contains("تومان") || subtitle.contains("رایگان") || subtitle.contains("توافقی") || subtitle.contains("ودیعه")) price = subtitle
                             }
                         }
-                        "DESCRIPTION" -> if (description.isBlank()) description = data.optString("text", "")
+                        "DESCRIPTION" -> if (description.isBlank()) {
+                            description = data.optString("text", "")
+                                .ifBlank { data.optString("description", "") }
+                                .ifBlank { data.optString("value", "") }
+                                .ifBlank { data.optString("content", "") }
+                        }
                         "IMAGE" -> if (imageUrl.isBlank()) {
                             val items = data.optJSONArray("items")
                             if (items != null) {
@@ -1433,6 +1471,14 @@ private object LinkPreviewLoader {
                 }
             }
             if (description.isBlank()) description = root.optJSONObject("seo")?.optString("description", "").orEmpty()
+            if (description.isBlank()) description = findNestedText(root, setOf("description", "text", "content"))
+            if (title.isBlank()) title = findNestedText(root, setOf("title", "subject"))
+            if (price.isBlank()) {
+                val nestedPrice = findNestedText(root, setOf("price", "price_text", "subtitle"))
+                if (nestedPrice.contains("تومان") || nestedPrice.contains("توافقی") || nestedPrice.contains("رایگان") || nestedPrice.contains("ودیعه")) {
+                    price = nestedPrice
+                }
+            }
             if (title.isBlank() && description.isBlank() && imageUrl.isBlank()) return null
             return Preview(
                 title = decode(title).ifBlank { "آگهی دیوار" },
@@ -1443,6 +1489,30 @@ private object LinkPreviewLoader {
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun findNestedText(value: Any?, keys: Set<String>): String {
+        when (value) {
+            is org.json.JSONObject -> {
+                for (key in keys) {
+                    val candidate = value.opt(key)
+                    if (candidate is String && candidate.isNotBlank()) return candidate
+                }
+                val iterator = value.keys()
+                while (iterator.hasNext()) {
+                    val key = iterator.next()
+                    val found = findNestedText(value.opt(key), keys)
+                    if (found.isNotBlank()) return found
+                }
+            }
+            is org.json.JSONArray -> {
+                for (i in 0 until value.length()) {
+                    val found = findNestedText(value.opt(i), keys)
+                    if (found.isNotBlank()) return found
+                }
+            }
+        }
+        return ""
     }
 
     private fun fetchHtml(url: String): Preview {
