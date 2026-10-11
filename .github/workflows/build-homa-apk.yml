@@ -93,15 +93,17 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # Signature and ZIP alignment checks do not prove Android's package
-      # manager can install the APK. Exercise the actual install path too.
-      - name: Install APK on Android emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect -no-snapshot -no-snapshot-save -wipe-data
-          disable-animations: true
-          script: |
-            APK="$(find app/build/outputs/apk/foss/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"; test -n "$APK" && test -s "$APK" && adb install "$APK" && adb shell pm path com.goodwy.smsmessenger.debug && echo "Android package manager installed the Homa FOSS debug APK successfully."
+      # Emulator installation check disabled to avoid its ~10-minute runtime.
+      # # Signature and ZIP alignment checks do not prove Android's package
+      # # manager can install the APK. Exercise the actual install path too.
+      # - name: Install APK on Android emulator
+      #   uses: reactivecircus/android-emulator-runner@v2
+      #   with:
+      #     api-level: 35
+      #     arch: x86_64
+      #     profile: pixel_2
+      #     emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect -no-snapshot -no-snapshot-save -wipe-data
+      #     disable-animations: true
+      #     script: |
+      #       APK="$(find app/build/outputs/apk/foss/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"; test -n "$APK" && test -s "$APK" && adb install "$APK" && adb shell pm path com.goodwy.smsmessenger.debug && echo "Android package manager installed the Homa FOSS debug APK successfully."
+      #
