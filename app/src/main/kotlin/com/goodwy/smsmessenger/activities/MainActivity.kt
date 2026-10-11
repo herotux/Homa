@@ -44,7 +44,6 @@ import com.goodwy.smsmessenger.models.Conversation
 import com.goodwy.smsmessenger.models.Events
 import com.goodwy.smsmessenger.models.Message
 import com.goodwy.smsmessenger.models.SearchResult
-import com.goodwy.smsmessenger.views.ThinkingOrbView
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -69,7 +68,7 @@ class MainActivity : SimpleActivity() {
     private var providerRefreshInFlight = false
     private var initialMessageLoadingOverlay: FrameLayout? = null
     private var initialMessageLoadingText: TextView? = null
-    private var initialMessageLoadingOrb: ThinkingOrbView? = null
+    private var initialMessageLoadingProgress: com.google.android.material.progressindicator.LinearProgressIndicator? = null
     private var initialMessageLoadingTotal = 0
     private var initialMessageLoadingLoaded = 0
 
@@ -487,9 +486,27 @@ class MainActivity : SimpleActivity() {
                     privateContacts = privateContacts,
                     onConversationLoaded = { conversation ->
                         if (initialMessageLoaderShown) {
-                            // Import each thread as soon as the Android provider exposes it.
-                            // This couples the visible progress to the same pass that builds
-                            // the conversation list instead of waiting for that pass to finish.
+                            // Persist and show each conversation as soon as the provider returns it,
+                            // rather than waiting for the full provider scan to finish.
+                            conversationsDB.insertOrUpdate(conversation)
+                            val cachedIndex = cachedConversations.indexOfFirst { it.threadId == conversation.threadId }
+                            if (cachedIndex >= 0) {
+                                cachedConversations[cachedIndex] = conversation
+                            } else {
+                                cachedConversations.add(conversation)
+                            }
+
+                            val visibleConversationCount = cachedConversations.count { !it.isArchived }
+                            if (visibleConversationCount == 1 || visibleConversationCount % 5 == 0) {
+                                val visibleSnapshot = cachedConversations.filter { !it.isArchived }
+                                    .sortedByDescending { it.date }
+                                runOnUiThread {
+                                    if (token == conversationLoadToken && !isFinishing && !isDestroyed) {
+                                        setupConversations(ArrayList(visibleSnapshot))
+                                    }
+                                }
+                            }
+
                             val loaded = getMessages(
                                 conversation.threadId,
                                 includeScheduledMessages = false,
@@ -573,54 +590,71 @@ class MainActivity : SimpleActivity() {
         fun dp(value: Int) = (value * density).toInt()
 
         val overlay = FrameLayout(this).apply {
-            setBackgroundColor(Color.argb(45, 0, 0, 0))
+            // Transparent, non-interactive overlay: conversations remain visible and usable.
+            setBackgroundColor(Color.TRANSPARENT)
             isClickable = false
             isFocusable = false
-            elevation = dp(30).toFloat()
-            translationZ = dp(30).toFloat()
+            elevation = dp(12).toFloat()
+            translationZ = dp(12).toFloat()
         }
 
         val card = com.google.android.material.card.MaterialCardView(this).apply {
-            radius = 28f * density
-            cardElevation = 16f * density
+            radius = 14f * density
+            cardElevation = 5f * density
             setCardBackgroundColor(getSurfaceColor())
-            strokeWidth = 0
+            strokeWidth = dp(1)
+            strokeColor = getProperPrimaryColor().adjustAlpha(0.22f)
         }
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dp(28), dp(24), dp(28), dp(24))
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(10), dp(14), dp(10))
         }
-
-        val orb = ThinkingOrbView(this)
-        content.addView(orb, LinearLayout.LayoutParams(dp(120), dp(120)))
 
         val text = TextView(this).apply {
             setTextColor(getProperTextColor())
-            textSize = 15f
-            gravity = Gravity.CENTER
+            textSize = 12f
+            gravity = Gravity.START
             includeFontPadding = false
             text = getString(R.string.loading_messages)
-            setPadding(0, dp(10), 0, 0)
         }
         content.addView(
             text,
             LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         )
 
-        card.addView(content)
+        val progress = com.google.android.material.progressindicator.LinearProgressIndicator(this).apply {
+            isIndeterminate = false
+            max = initialMessageLoadingTotal.coerceAtLeast(1)
+            progress = 0
+            trackColor = getProperPrimaryColor().adjustAlpha(0.18f)
+            setIndicatorColor(getProperPrimaryColor())
+            setPadding(0, dp(7), 0, 0)
+        }
+        content.addView(
+            progress,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(4)
+            ).apply { topMargin = dp(7) }
+        )
 
+        card.addView(content)
         overlay.addView(
             card,
             FrameLayout.LayoutParams(
-                dp(260),
+                dp(290),
                 FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.CENTER
-            )
+                Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            ).apply {
+                topMargin = dp(82)
+                marginStart = dp(12)
+                marginEnd = dp(12)
+            }
         )
 
         binding.root.addView(
@@ -631,19 +665,19 @@ class MainActivity : SimpleActivity() {
             )
         )
 
-        overlay.bringToFront()
-        card.bringToFront()
-
         initialMessageLoadingOverlay = overlay
         initialMessageLoadingText = text
-        initialMessageLoadingOrb = orb
+        initialMessageLoadingProgress = progress
     }
 
     private fun showInitialMessageLoadingIndicator() {
         if (initialMessageLoadingOverlay == null) setupInitialMessageLoadingIndicator()
-        initialMessageLoadingOverlay?.visibility = View.VISIBLE
-        initialMessageLoadingOverlay?.bringToFront()
-        initialMessageLoadingOrb?.resumeAnimation()
+        initialMessageLoadingOverlay?.apply {
+            alpha = 1f
+            visibility = View.VISIBLE
+            bringToFront()
+        }
+        initialMessageLoadingProgress?.max = initialMessageLoadingTotal.coerceAtLeast(1)
         updateInitialMessageLoadingProgress(initialMessageLoadingLoaded)
     }
 
@@ -656,13 +690,20 @@ class MainActivity : SimpleActivity() {
             } else {
                 getString(R.string.loading_messages)
             }
+            initialMessageLoadingProgress?.let {
+                it.max = total.coerceAtLeast(1)
+                it.setProgressCompat(safeLoaded.coerceAtMost(it.max), false)
+            }
         }
     }
 
     private fun hideInitialMessageLoadingIndicator() {
         runOnUiThread {
-            initialMessageLoadingOrb?.pauseAnimation()
-            initialMessageLoadingOverlay?.visibility = View.GONE
+            val overlay = initialMessageLoadingOverlay ?: return@runOnUiThread
+            overlay.animate().alpha(0f).setDuration(180).withEndAction {
+                overlay.visibility = View.GONE
+                overlay.alpha = 1f
+            }.start()
         }
     }
 
