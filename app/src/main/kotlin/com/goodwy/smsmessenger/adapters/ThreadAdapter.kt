@@ -790,7 +790,7 @@ class ThreadAdapter(
         }
         (annotations.layoutParams as? RelativeLayout.LayoutParams)?.let { params ->
             params.removeRule(RelativeLayout.BELOW)
-            val preview = wrapper.findViewWithTag<View>("homa_divar_preview")
+            val preview = wrapper.findViewWithTag<View>("homa_link_preview")
             params.addRule(RelativeLayout.BELOW, if (preview?.visibility == View.VISIBLE) preview.id else binding.threadMessageBodyWrapper.id)
             annotations.layoutParams = params
         }
