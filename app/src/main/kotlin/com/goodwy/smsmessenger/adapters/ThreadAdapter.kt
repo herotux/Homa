@@ -1337,8 +1337,11 @@ private object LinkPreviewLoader {
             if (inFlight.putIfAbsent(url, true) != null) return
         }
         Thread {
-            val result = try { fetch(url) } catch (_: Exception) {
-                Preview(hostName(url), "برای مشاهده صفحه، کارت را لمس کنید.", "", "")
+            val result = try {
+                if (DIVAR_LINK_REGEX.containsMatchIn(url)) fetchDivar(url) ?: fetchHtml(url)
+                else fetchHtml(url)
+            } catch (_: Exception) {
+                Preview(hostName(url), "", "", "")
             }
             cache[url] = result
             val callbacks = synchronized(listeners) { listeners.remove(url)?.toList().orEmpty() }
@@ -1349,15 +1352,103 @@ private object LinkPreviewLoader {
 
     private fun hostName(url: String): String = try { URL(url).host.removePrefix("www.") } catch (_: Exception) { "مشاهده لینک" }
 
-    private fun fetch(url: String): Preview {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        connection.connectTimeout = 7000
-        connection.readTimeout = 7000
-        connection.instanceFollowRedirects = true
-        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124.0 Mobile Safari/537.36")
-        connection.setRequestProperty("Accept-Language", "fa-IR,fa;q=0.9,en;q=0.7")
+    private fun openConnection(url: String): HttpURLConnection =
+        (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 8000
+            readTimeout = 8000
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124.0 Mobile Safari/537.36")
+            setRequestProperty("Accept-Language", "fa-IR,fa;q=0.9,en;q=0.7")
+            setRequestProperty("Accept", "application/json,text/html,*/*")
+        }
+
+    private fun readResponse(connection: HttpURLConnection, maxChars: Int = 2500000): String =
+        connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText().take(maxChars) }
+
+    private fun fetchDivar(url: String): Preview? {
+        val token = try {
+            val path = URL(url).path.trimEnd('/')
+            path.substringAfterLast('/').takeIf { it.matches(Regex("[A-Za-z0-9_-]{6,}")) }
+                ?: path.substringAfter("/v/", "").split('/').lastOrNull()?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{6,}")) }
+        } catch (_: Exception) { null } ?: return null
+
+        val connection = openConnection("https://api.divar.ir/v8/posts-v2/web/$token")
         try {
-            val html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText().take(2500000) }
+            val body = readResponse(connection, 3000000)
+            val root = org.json.JSONObject(body)
+            val sections = root.optJSONArray("sections") ?: return null
+            var title = ""
+            var description = ""
+            var price = ""
+            var imageUrl = ""
+
+            for (i in 0 until sections.length()) {
+                val section = sections.optJSONObject(i) ?: continue
+                val sectionName = section.optString("section_name", "").uppercase(Locale.ROOT)
+                val widgets = section.optJSONArray("widgets") ?: continue
+                for (j in 0 until widgets.length()) {
+                    val widget = widgets.optJSONObject(j) ?: continue
+                    val data = widget.optJSONObject("data") ?: continue
+                    when (sectionName) {
+                        "TITLE" -> {
+                            if (title.isBlank()) title = data.optString("title", "")
+                            if (price.isBlank()) {
+                                val subtitle = data.optString("subtitle", "")
+                                if (subtitle.contains("تومان") || subtitle.contains("رایگان") || subtitle.contains("توافقی") || subtitle.contains("ودیعه")) price = subtitle
+                            }
+                        }
+                        "DESCRIPTION" -> if (description.isBlank()) description = data.optString("text", "")
+                        "IMAGE" -> if (imageUrl.isBlank()) {
+                            val items = data.optJSONArray("items")
+                            if (items != null) {
+                                for (k in 0 until items.length()) {
+                                    val item = items.optJSONObject(k) ?: continue
+                                    val image = item.optJSONObject("image")
+                                    val candidate = image?.optString("url", "").orEmpty()
+                                        .ifBlank { item.optString("url", "") }
+                                        .ifBlank { item.optString("image_url", "") }
+                                    if (candidate.startsWith("https://") || candidate.startsWith("http://")) {
+                                        imageUrl = candidate
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                        "LIST_DATA" -> if (price.isBlank()) {
+                            val candidate = data.optString("value", "").ifBlank { data.optString("title", "") }
+                            if (candidate.contains("تومان") || candidate.contains("توافقی") || candidate.contains("رایگان")) price = candidate
+                            val items = data.optJSONArray("items")
+                            if (price.isBlank() && items != null) {
+                                for (k in 0 until items.length()) {
+                                    val item = items.optJSONObject(k) ?: continue
+                                    val value = item.optString("value", "")
+                                    if (value.contains("تومان") || value.contains("توافقی") || value.contains("رایگان")) {
+                                        price = value
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (description.isBlank()) description = root.optJSONObject("seo")?.optString("description", "").orEmpty()
+            if (title.isBlank() && description.isBlank() && imageUrl.isBlank()) return null
+            return Preview(
+                title = decode(title).ifBlank { "آگهی دیوار" },
+                description = decode(description),
+                price = decode(price),
+                imageUrl = imageUrl
+            )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun fetchHtml(url: String): Preview {
+        val connection = openConnection(url)
+        try {
+            val html = readResponse(connection)
             fun meta(vararg keys: String): String {
                 for (key in keys) {
                     val escapedKey = Regex.escape(key)
@@ -1381,16 +1472,7 @@ private object LinkPreviewLoader {
             var image = meta("og:image", "og:image:url", "twitter:image", "twitter:image:src")
             if (image.startsWith("//")) image = "https:$image"
             if (image.startsWith("/")) image = try { URL(URL(url), image).toString() } catch (_: Exception) { "" }
-            val isDivar = DIVAR_LINK_REGEX.containsMatchIn(url)
-            val price = if (isDivar) sequenceOf(
-                Regex("\\\"priceText\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"", RegexOption.IGNORE_CASE),
-                Regex("\\\"price\\\"\\s*:\\s*\\{[^}]{0,300}?\\\"value\\\"\\s*:\\s*(\\d+)", RegexOption.IGNORE_CASE),
-                Regex("\\\"price\\\"\\s*:\\s*\\\"?(\\d{4,})\\\"?", RegexOption.IGNORE_CASE)
-            ).mapNotNull { it.find(html)?.groupValues?.getOrNull(1) }.firstOrNull()?.let { raw ->
-                if (raw.any { it.isLetter() }) raw else raw.toLongOrNull()?.let { String.format(Locale.US, "%,d تومان", it) } ?: raw
-            }.orEmpty() else ""
-            val descriptionFinal = if (isDivar && description.isBlank()) "برای مشاهده جزئیات آگهی، کارت را لمس کنید." else description
-            return Preview(title, descriptionFinal, price, image)
+            return Preview(title, description, "", image)
         } finally {
             connection.disconnect()
         }
