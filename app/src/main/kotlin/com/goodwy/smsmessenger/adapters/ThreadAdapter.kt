@@ -1326,7 +1326,7 @@ private val DIVAR_LINK_REGEX = Regex("https?://(?:www\\.)?divar\\.ir/v/[A-Za-z0-
 
 private object LinkPreviewLoader {
     data class Preview(val title: String, val description: String, val price: String, val imageUrl: String)
-    private const val PREFS_NAME = "homa_link_previews_v2"
+    private const val PREFS_NAME = "homa_link_previews_v3"
     private const val CACHE_PREFIX = "preview:"
     val cache = ConcurrentHashMap<String, Preview>()
     private val inFlight = ConcurrentHashMap<String, Boolean>()
@@ -1375,8 +1375,12 @@ private object LinkPreviewLoader {
             } catch (_: Exception) {
                 Preview(hostName(url), "", "", "")
             }
-            cache[url] = result
-            writePersistentCache(context.applicationContext, url, result)
+            // Do not keep an empty Divar description in memory or disk: transient API/HTML
+            // failures must be retried instead of making the missing description permanent.
+            if (!DIVAR_LINK_REGEX.containsMatchIn(url) || result.description.isNotBlank()) {
+                cache[url] = result
+                writePersistentCache(context.applicationContext, url, result)
+            }
             val callbacks = synchronized(listeners) { listeners.remove(url)?.toList().orEmpty() }
             inFlight.remove(url)
             callbacks.forEach { listener -> try { listener(result) } catch (_: Exception) { } }
@@ -1430,11 +1434,9 @@ private object LinkPreviewLoader {
                                 if (subtitle.contains("تومان") || subtitle.contains("رایگان") || subtitle.contains("توافقی") || subtitle.contains("ودیعه")) price = subtitle
                             }
                         }
-                        "DESCRIPTION" -> if (description.isBlank()) {
-                            description = data.optString("text", "")
-                                .ifBlank { data.optString("description", "") }
-                                .ifBlank { data.optString("value", "") }
-                                .ifBlank { data.optString("content", "") }
+                        "DESCRIPTION", "DESCRIPTION_ROW" -> if (description.isBlank()) {
+                            // Divar has returned description text at different nesting levels.
+                            description = findNestedText(data, setOf("text", "description", "value", "content"))
                         }
                         "IMAGE" -> if (imageUrl.isBlank()) {
                             val items = data.optJSONArray("items")
