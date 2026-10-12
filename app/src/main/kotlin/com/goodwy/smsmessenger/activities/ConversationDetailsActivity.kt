@@ -256,12 +256,24 @@ class ConversationDetailsActivity : SimpleActivity() {
             tab.alpha = if (selected) 1f else 0.72f
         }
 
-        // Improved regex patterns
-        val linkRegex = Regex("""https?://[^\s<>\"'\]\)]+""", RegexOption.IGNORE_CASE)
-        val bankRegex = Regex(
-            """(?<!\d)(?:IR\s?\d{2}(?:[\s-]?\d){22}|\d{4}(?:[\s-]?\d{4}){3}|\d{16}|\d{10,26})(?!\d)""",
-            RegexOption.IGNORE_CASE
+        // Match URLs and bank identifiers even when SMS text uses Persian/Arabic digits.
+        val linkRegex = Regex(
+            """(?i)(?:https?://|www\\.)[^\\s<>\\\"'\\]\\)]+"""
         )
+        val bankRegex = Regex(
+            """(?i)(?<![0-9])(?:IR\\s?[0-9]{2}(?:[\\s-]?[0-9]){22}|[0-9]{4}(?:[\\s-]?[0-9]{4}){3}|[0-9]{16}|[0-9]{10,26})(?![0-9])"""
+        )
+
+        fun normalizeDigits(value: String): String = buildString(value.length) {
+            value.forEach { char ->
+                val digit = when (char) {
+                    in '۰'..'۹' -> char.code - '۰'.code
+                    in '٠'..'٩' -> char.code - '٠'.code
+                    else -> -1
+                }
+                append(if (digit >= 0) ('0'.code + digit).toChar() else char)
+            }
+        }
 
         fun render(isBanks: Boolean) {
             linksTab.text = "لینک‌ها"
@@ -279,19 +291,22 @@ class ConversationDetailsActivity : SimpleActivity() {
 
             val rows: List<Triple<com.goodwy.smsmessenger.models.Message, String, String>> = if (isBanks) {
                 messages.flatMap { message ->
-                    val body = message.body ?: ""
+                    val body = normalizeDigits(message.body)
                     bankRegex.findAll(body)
                         .map { it.value.trim() }
+                        .map { value -> value.replace(Regex("""[\\s-]"""), "") }
                         .filter { value ->
-                            val digits = value.filter { it.isDigit() }
-                            digits.length in 10..26
+                            val digits = value.filter { it in '0'..'9' }
+                            digits.length in 10..26 &&
+                                (value.startsWith("IR", ignoreCase = true) && digits.length == 24 ||
+                                    digits.length == 16 || digits.length in 10..26)
                         }
                         .map { Triple(message, it, "شماره بانکی") }
                         .toList()
                 }.distinctBy { it.second.filter { c -> c.isDigit() } }
             } else {
                 messages.flatMap { message ->
-                    val body = message.body ?: ""
+                    val body = message.body
                     linkRegex.findAll(body)
                         .map { match ->
                             match.value.trimEnd('.', ',', ')', ']', '،', '"', '\'')
