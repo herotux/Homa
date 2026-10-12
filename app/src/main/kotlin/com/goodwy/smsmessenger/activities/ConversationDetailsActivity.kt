@@ -258,10 +258,10 @@ class ConversationDetailsActivity : SimpleActivity() {
 
         // Match URLs and bank identifiers even when SMS text uses Persian/Arabic digits.
         val linkRegex = Regex(
-            """(?i)(?:https?://|www\\.)[^\\s<>\\\"'\\]\\)]+"""
+            """(?i)(?:https?://|www\.)[^\s<>\\"'\]\)]+"""
         )
         val bankRegex = Regex(
-            """(?i)(?<![0-9])(?:IR\\s?[0-9]{2}(?:[\\s-]?[0-9]){22}|[0-9]{4}(?:[\\s-]?[0-9]{4}){3}|[0-9]{16}|[0-9]{10,26})(?![0-9])"""
+            """(?i)(?<![0-9])(?:IR\s?[0-9]{2}(?:[\s-]?[0-9]){22}|[0-9]{4}(?:[\s-]?[0-9]{4}){3}|[0-9]{16}|[0-9]{10,26})(?![0-9])"""
         )
 
         fun normalizeDigits(value: String): String = buildString(value.length) {
