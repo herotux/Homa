@@ -11,6 +11,14 @@ import android.media.RingtoneManager
 import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
+import android.graphics.Typeface
+import android.net.Uri
+import android.view.Gravity
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.ImageView
+import android.util.TypedValue
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
@@ -60,6 +68,7 @@ class ConversationDetailsActivity : SimpleActivity() {
                 setupParticipants()
                 updateButton()
                 setupCustomNotifications()
+                setupSharedContent()
             }
         }
     }
@@ -217,6 +226,121 @@ class ConversationDetailsActivity : SimpleActivity() {
     private fun removeNotificationChannel() {
         notificationManager.deleteNotificationChannel(threadId.hashCode().toString())
     }
+
+
+    private fun setupSharedContent() {
+        val holder = binding.conversationDetailsHolder
+        if (holder.findViewWithTag<View>("homa_shared_content") != null) return
+        val section = LinearLayout(this).apply {
+            tag = "homa_shared_content"
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), dp(18), dp(4), dp(20))
+        }
+        section.addView(TextView(this).apply {
+            text = "محتوای به‌اشتراک‌گذاشته‌شده"
+            setTextColor(getProperTextColor())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(dp(8), dp(8), dp(8), dp(12))
+        })
+        val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(8), 0, 0)
+        }
+        val linksTab = TextView(this)
+        val banksTab = TextView(this)
+        fun styleTab(tab: TextView, selected: Boolean) {
+            tab.setTextColor(if (selected) getProperPrimaryColor() else getProperTextColor())
+            tab.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            tab.gravity = Gravity.CENTER
+            tab.setPadding(dp(8), dp(12), dp(8), dp(12))
+            tab.background = AppCompatResources.getDrawable(this, com.goodwy.commons.R.drawable.button_white_bg_10dp)
+            tab.background?.setTint(getProperBackgroundColor())
+            tab.alpha = if (selected) 1f else 0.72f
+        }
+        fun render(isBanks: Boolean) {
+            linksTab.text = "لینک‌ها"
+            banksTab.text = "شماره‌های بانکی"
+            styleTab(linksTab, !isBanks)
+            styleTab(banksTab, isBanks)
+            content.removeAllViews()
+            val messages = try { messagesDB.getThreadMessages(threadId) } catch (_: Exception) { emptyList() }
+            val rows: List<Triple<com.goodwy.smsmessenger.models.Message, String, String>> = if (isBanks) {
+                messages.flatMap { message ->
+                    Regex("(?<!\\d)(?:IR\\d{2}(?:[ -]?\\d){22}|(?:\\d[ -]?){16}|(?:\\d[ -]?){10,20})(?!\\d)", RegexOption.IGNORE_CASE)
+                        .findAll(message.body).map { it.value.trim() }
+                        .filter { it.filter(Char::isDigit).length in 10..26 }
+                        .map { Triple(message, it, "شماره بانکی") }.toList()
+                }.distinctBy { it.second.filter(Char::isDigit) }
+            } else {
+                messages.flatMap { message ->
+                    Regex("https?://[^\\s<>]+", RegexOption.IGNORE_CASE).findAll(message.body)
+                        .map { Triple(message, it.value.trimEnd('.', ',', ')', ']', '،'), "لینک به‌اشتراک‌گذاشته‌شده") }.toList()
+                }.distinctBy { it.second }
+            }
+            if (rows.isEmpty()) {
+                content.addView(TextView(this).apply {
+                    text = if (isBanks) "شماره کارت، حساب یا شبایی در این گفتگو پیدا نشد." else "لینکی در این گفتگو پیدا نشد."
+                    setTextColor(getProperTextColor())
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setPadding(dp(12), dp(18), dp(12), dp(18))
+                })
+                return
+            }
+            rows.forEach { (message, value, _) ->
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(10), dp(10), dp(10), dp(10))
+                    background = AppCompatResources.getDrawable(this@ConversationDetailsActivity, com.goodwy.commons.R.drawable.button_white_bg_10dp)
+                    background?.setTint(getProperBackgroundColor())
+                    isClickable = true
+                    isFocusable = true
+                }
+                row.addView(ImageView(this).apply {
+                    setImageResource(if (isBanks) com.goodwy.commons.R.drawable.ic_phone_vector else com.goodwy.commons.R.drawable.ic_ios_share)
+                    setColorFilter(getProperPrimaryColor())
+                    scaleType = ImageView.ScaleType.CENTER_INSIDE
+                }, LinearLayout.LayoutParams(dp(52), dp(52)))
+                val texts = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(12), 0, dp(4), 0)
+                }
+                texts.addView(TextView(this).apply {
+                    text = if (isBanks) value else Uri.parse(value).host?.removePrefix("www.") ?: value
+                    setTextColor(getProperTextColor())
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                    maxLines = 2
+                })
+                texts.addView(TextView(this).apply {
+                    text = if (isBanks) "لمس طولانی: کپی شماره · لمس: رفتن به پیام" else value
+                    setTextColor(getProperPrimaryColor())
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                    maxLines = 2
+                })
+                row.addView(texts, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                row.setOnClickListener {
+                    startActivity(Intent(this, ThreadActivity::class.java).apply {
+                        putExtra(THREAD_ID, threadId)
+                        putExtra(SEARCHED_MESSAGE_ID, message.id)
+                    })
+                }
+                row.setOnLongClickListener { copyToClipboard(value); true }
+                content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) })
+            }
+        }
+        linksTab.setOnClickListener { render(false) }
+        banksTab.setOnClickListener { render(true) }
+        tabs.addView(linksTab, LinearLayout.LayoutParams(0, -2, 1f))
+        tabs.addView(banksTab, LinearLayout.LayoutParams(0, -2, 1f))
+        section.addView(tabs)
+        section.addView(content)
+        holder.addView(section)
+        render(false)
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun setupTextViews() {
         binding.conversationName.apply {
